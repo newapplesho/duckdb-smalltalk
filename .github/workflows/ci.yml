@@ -1,0 +1,56 @@
+name: CI
+
+run-name: "[${{ github.event.repository.name }}] Check: ${{ github.event_name == 'schedule' && 'scheduled' || github.event.pull_request.title }}"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: "0 21 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        smalltalk: [Pharo64-12, Pharo64-13]
+    name: ${{ matrix.smalltalk }}
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Download DuckDB library
+        run: |
+          curl -fsSL -o /tmp/libduckdb-linux.zip \
+            https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
+          unzip /tmp/libduckdb-linux.zip libduckdb.so -d lib/
+          echo "DUCKDB_LIB_PATH=${{ github.workspace }}/lib/libduckdb.so" >> $GITHUB_ENV
+
+      - name: Setup smalltalkCI
+        uses: hpi-swa/setup-smalltalkCI@a104c9a0c7d4226f32474ba28b15bba774fb24ed # 1.5.0
+        with:
+          smalltalk-image: ${{ matrix.smalltalk }}
+
+      - name: Verify DuckDB library
+        run: |
+          ls -la lib/libduckdb.so
+          ldd lib/libduckdb.so
+
+      - name: Run tests
+        run: smalltalkci -s ${{ matrix.smalltalk }}
+        timeout-minutes: 15
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: junit-results-${{ matrix.smalltalk }}
+          path: '*.xml'
+          if-no-files-found: ignore

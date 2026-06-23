@@ -1,0 +1,12 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'DuckDB',
+      #directory : 'src',
+      #load : [ 'all' ]
+    }
+  ],
+  #testing : {
+    #classes : [ #DuckDBConnectionTest, #DuckDBTypeTest ]
+  }
+}

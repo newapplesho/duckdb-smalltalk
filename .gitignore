@@ -1,31 +1,31 @@
-# changes file
-*.changes
-*.chg
+# Pharo image + VM (installed separately into pharo-local/ — see README)
+/pharo-local/
 
-# system image
-*.image
-*.img7
-*.img
+# DuckDB native library — downloaded per platform; only README.md is tracked
+/lib/*
+!/lib/README.md
 
-# Pharo Smalltalk Debug log file
+# Pharo caches
+/package-cache/
+/play-cache/
+/play-stash/
+/github-cache/
+github-*.zip
+
+# Smalltalk debug logs
 PharoDebug.log
-
-# Squeak Smalltalk Debug log file
 SqueakDebug.log
 
-# Dolphin Smalltalk source file
-*.sml
+# Test output at repository root
+/*-Test.xml
+/progress.log
 
-# Dolphin Smalltalk error file
-*.errors
+# Image / changes (if Pharo is ever run outside pharo-local/)
+*.image
+*.changes
+*.sources
 
-# Monticello package cache
-/package-cache
-
-# playground cache
-/play-cache
-/play-stash
-
-# Metacello-github cache
-/github-cache
-github-*.zip
+# IDE / OS
+.idea/
+*.swp
+.DS_Store
