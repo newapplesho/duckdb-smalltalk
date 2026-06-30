@@ -4,11 +4,16 @@
 PHARO_DIR    = pharo-local
 PHARO        = ./pharo --headless Pharo.image
 TEST_PATTERN = DuckDB.*
+PHARO_VERSION = 130
 
-.PHONY: help load test ui
+.PHONY: help setup load test ui
 
 help:   ## Show available targets
-	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-6s %s\n", $$1, $$2}'
+	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-7s %s\n", $$1, $$2}'
+
+setup:  ## Download a local Pharo image + VM into pharo-local/
+	mkdir -p $(PHARO_DIR)
+	cd $(PHARO_DIR) && curl -fsSL https://get.pharo.org/64/$(PHARO_VERSION)+vm | bash
 
 load:   ## Load (or reload) the project into the Pharo image
 	cd $(PHARO_DIR) && $(PHARO) eval --save "$$(cat ../scripts/load-project.st)"

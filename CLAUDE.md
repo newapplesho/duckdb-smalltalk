@@ -6,6 +6,9 @@ Sources are in [Tonel](https://github.com/pharo-vcs/tonel) format (`src/`): one 
 ## Commands
 
 ```bash
+# Download Pharo image + VM
+make setup
+
 # Load the project (headless) — scripts/load-project.st is the single source of truth for the load expression
 make load
 
