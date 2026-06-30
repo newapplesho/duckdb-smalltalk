@@ -20,8 +20,12 @@ Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UF
 ### 1. Install Pharo
 
 ```bash
-make setup
-# Pharo 12の場合: make setup PHARO_VERSION=120
+mkdir -p pharo-local && cd pharo-local
+# Pharo 13
+curl -fsSL https://get.pharo.org/64/130+vm | bash
+# Pharo 12
+# curl -fsSL https://get.pharo.org/64/120+vm | bash
+cd ..
 ```
 
 ### 2. Get libduckdb
