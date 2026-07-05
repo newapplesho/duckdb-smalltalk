@@ -375,6 +375,84 @@ DuckDBTypeTest >> selectInsertedValue [
 	^ [ result first at: 'v' ] ensure: [ result destroy ]
 ]
 
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindBooleanRoundtrip [
+	self insertInto: 'BOOLEAN' binding: [ :stmt | stmt bind: true at: 1 ].
+	self assert: self selectInsertedValue equals: true
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindIntegerRoundtrip [
+	self insertInto: 'BIGINT' binding: [ :stmt | stmt bind: 42 at: 1 ].
+	self assert: self selectInsertedValue equals: 42
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindFloatRoundtrip [
+	self insertInto: 'DOUBLE' binding: [ :stmt | stmt bind: 3.14 at: 1 ].
+	self assert: (self selectInsertedValue closeTo: 3.14)
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindStringRoundtrip [
+	self insertInto: 'VARCHAR' binding: [ :stmt | stmt bind: 'hello' at: 1 ].
+	self assert: self selectInsertedValue equals: 'hello'
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindDateRoundtrip [
+	| date |
+	date := Date year: 2024 month: 3 day: 15.
+	self insertInto: 'DATE' binding: [ :stmt | stmt bind: date at: 1 ].
+	self assert: self selectInsertedValue equals: date
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindTimeRoundtrip [
+	| time |
+	time := Time hour: 12 minute: 34 second: 56.
+	self insertInto: 'TIME' binding: [ :stmt | stmt bind: time at: 1 ].
+	self assert: self selectInsertedValue equals: time
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindTimestampRoundtrip [
+	| timestamp |
+	timestamp := DateAndTime
+		year: 2024 month: 3 day: 15
+		hour: 12 minute: 34 second: 56
+		offset: Duration zero.
+	self insertInto: 'TIMESTAMP' binding: [ :stmt |
+		stmt bind: timestamp at: 1 ].
+	self assert: self selectInsertedValue equals: timestamp
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindBlobRoundtrip [
+	| bytes |
+	bytes := #[222 173 190 239].
+	self insertInto: 'BLOB' binding: [ :stmt | stmt bind: bytes at: 1 ].
+	self assert: self selectInsertedValue equals: bytes
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindNullRoundtrip [
+	self insertInto: 'VARCHAR' binding: [ :stmt | stmt bind: nil at: 1 ].
+	self assert: self selectInsertedValue isNil
+]
+
+{ #category : 'tests - generic bind' }
+DuckDBTypeTest >> testGenericBindUnsupportedTypeSignalsError [
+	| stmt |
+	(conn execute: 'CREATE TABLE t (v VARCHAR)') destroy.
+	stmt := conn prepare: 'INSERT INTO t VALUES (?)'.
+	[
+		self
+			should: [ stmt bind: OrderedCollection new at: 1 ]
+			raise: DuckDBBindError
+	] ensure: [ stmt destroy ]
+]
+
 { #category : 'tests - bind' }
 DuckDBTypeTest >> testBindDateRoundtrip [
 	| date |

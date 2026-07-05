@@ -20,6 +20,9 @@ an issue.
 - [x] Row access by column name or index, `do:` / `collect:` / `select:` enumeration
 - [x] Prepared statements with parameter binding
       (Boolean, Integer, Float, String, Date, Time, DateAndTime, ByteArray, NULL)
+- [x] Generic `bind:at:` with automatic type detection from Smalltalk values
+- [x] `executeWith:` for one-call bind-and-execute with an array of values
+- [x] `execute:with:` on connections for one-shot parameterized queries
 - [x] CSV reading via `read_csv_auto` and import into tables
 - [x] Explicit, deterministic resource management (`ensure:`-based, no GC surprises)
 - [x] macOS / Linux / Windows library loading, CI on Pharo 12 and 13
@@ -52,8 +55,8 @@ DuckDB data types: [official overview](https://duckdb.org/docs/stable/sql/data_t
       [C API data chunks](https://duckdb.org/docs/stable/clients/c/data_chunk)
       (also unlocks UUID / ENUM / TIMESTAMP_TZ / LIST / STRUCT / MAP above)
 - [ ] Lazy row iteration without materializing full results
-- [ ] Batch statement execution (bind-and-execute loops over collections,
-      like Python's `executemany` / Rust's `execute_batch`)
+- [ ] `executemany`-style batch execution over a collection of parameter arrays
+      (like Python's `executemany` / Rust's `execute_batch`)
 
 ## File formats and import/export
 

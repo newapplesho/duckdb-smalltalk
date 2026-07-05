@@ -112,6 +112,9 @@ not implemented yet.
 
 Bind support (`DuckDBStatement`): Boolean, Integer (int64), Float (double),
 String, `Date`, `Time`, `DateAndTime` (UTC instant), `ByteArray` (blob), NULL.
+Generic `bind:at:` auto-detects type from the Smalltalk value's class.
+`executeWith:` binds an array and executes in one call.
+`DuckDBConnection>>execute:with:` is a one-shot convenience (prepare + bind + execute + destroy).
 
 ## Library Loading
 
