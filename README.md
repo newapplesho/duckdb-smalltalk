@@ -21,7 +21,7 @@ Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UF
 
 ```bash
 make setup
-# Pharo 12の場合: make setup PHARO_VERSION=120
+# For Pharo 12: make setup PHARO_VERSION=120
 ```
 
 ### 2. Get libduckdb
