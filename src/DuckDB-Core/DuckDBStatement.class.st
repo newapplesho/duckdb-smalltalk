@@ -1,15 +1,22 @@
 "
 I represent a prepared SQL statement compiled by DuckDBConnection>>prepare:.
 
-I bind parameters with `bindBoolean:at:`, `bindInteger:at:`, `bindFloat:at:`,
-`bindString:at:` and `bindNull:` (parameter indices are 1-based),
-then run with `execute`, which returns a DuckDBResult the caller must destroy.
+I bind parameters with the generic `bind:at:` (type is auto-detected from the
+Smalltalk value) or explicit `bindBoolean:at:`, `bindInteger:at:`,
+`bindFloat:at:`, `bindString:at:` and `bindNull:` (parameter indices are
+1-based), then run with `execute` or `executeWith:`, which returns a
+DuckDBResult the caller must destroy.
 I can be executed repeatedly with different bindings.
 Always call `destroy` when done, inside an `ensure:` block.
 
-Example:
+Example (generic):
 	stmt := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
-	[ stmt bindString: 'click' at: 1; bindInteger: 1 at: 2; execute ]
+	[ (stmt executeWith: #('click' 1)) destroy ]
+		ensure: [ stmt destroy ].
+
+Example (explicit):
+	stmt := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
+	[ stmt bindString: 'click' at: 1; bindInteger: 1 at: 2; execute destroy ]
 		ensure: [ stmt destroy ].
 "
 Class {
@@ -46,6 +53,22 @@ DuckDBStatement >> initializeOn: aDuckDBConnection sql: sqlString [
 			slot free.
 			DuckDBQueryError signal: 'Failed to prepare statement: ' , sqlString ].
 	handle := slot
+]
+
+{ #category : 'binding' }
+DuckDBStatement >> bind: aValue at: paramIndex [
+	aValue ifNil: [ ^ self bindNull: paramIndex ].
+	(aValue isKindOf: Boolean) ifTrue: [ ^ self bindBoolean: aValue at: paramIndex ].
+	aValue isString ifTrue: [ ^ self bindString: aValue at: paramIndex ].
+	aValue isInteger ifTrue: [ ^ self bindInteger: aValue at: paramIndex ].
+	aValue isFloat ifTrue: [ ^ self bindFloat: aValue at: paramIndex ].
+	(aValue isKindOf: DateAndTime) ifTrue: [
+		^ self bindTimestamp: aValue at: paramIndex ].
+	(aValue isKindOf: Date) ifTrue: [ ^ self bindDate: aValue at: paramIndex ].
+	(aValue isKindOf: Time) ifTrue: [ ^ self bindTime: aValue at: paramIndex ].
+	(aValue isKindOf: ByteArray) ifTrue: [
+		^ self bindBlob: aValue at: paramIndex ].
+	DuckDBBindError signal: 'Unsupported bind type: ' , aValue class name
 ]
 
 { #category : 'binding' }
@@ -155,6 +178,13 @@ DuckDBStatement >> bindBlob: aByteArray at: paramIndex [
 DuckDBStatement >> checkBindResult: returnCode at: paramIndex [
 	returnCode = DuckDBLibrary success
 		ifFalse: [ DuckDBBindError signal: 'Bind failed at index: ' , paramIndex printString ]
+]
+
+{ #category : 'actions' }
+DuckDBStatement >> executeWith: anArray [
+	anArray withIndexDo: [ :value :index |
+		self bind: value at: index ].
+	^ self execute
 ]
 
 { #category : 'actions' }

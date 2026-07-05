@@ -1,15 +1,22 @@
 "
 I represent an active connection to a DuckDB database.
 
-I execute SQL with `execute:` (returning a DuckDBResult the caller must destroy)
-and compile prepared statements with `prepare:`.
-Always call `disconnect` when done, or use DuckDB>>withConnection: for automatic cleanup.
+I execute SQL with `execute:` (returning a DuckDBResult the caller must destroy),
+parameterized SQL with `execute:with:`, and compile prepared statements with
+`prepare:`.
+Always call `disconnect` when done, or use DuckDB>>withConnection: for automatic
+cleanup.
 
 Example:
 	conn := DuckDB openMemory connect.
 	result := conn execute: 'SELECT 42 AS n'.
 	[ result do: [:row | Transcript showCr: (row at: 'n') printString] ]
 		ensure: [ result destroy. conn disconnect ].
+
+Example (parameterized):
+	result := conn execute: 'SELECT ? + ? AS sum' with: #(1 2).
+	[ Transcript showCr: (result first at: 'sum') printString ]
+		ensure: [ result destroy ].
 "
 Class {
 	#name : 'DuckDBConnection',
@@ -63,6 +70,15 @@ DuckDBConnection >> execute: sqlString [
 			DuckDBLibrary uniqueInstance duckdbDestroyResult: resultStruct.
 			DuckDBQueryError signal: (msg ifNil: ['Query failed']) ].
 	^ DuckDBResult on: resultStruct
+]
+
+{ #category : 'actions' }
+DuckDBConnection >> execute: sqlString with: anArray [
+	| stmt |
+	self isConnected ifFalse: [
+		DuckDBConnectionError signal: 'Connection is closed' ].
+	stmt := self prepare: sqlString.
+	^ [ stmt executeWith: anArray ] ensure: [ stmt destroy ]
 ]
 
 { #category : 'actions' }

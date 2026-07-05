@@ -185,6 +185,89 @@ DuckDBConnectionTest >> testPreparedStatementReuse [
 	] ensure: [ result destroy ].
 ]
 
+{ #category : 'tests - phase 3: prepared statements' }
+DuckDBConnectionTest >> testGenericBindInsertAndSelect [
+	| statement result |
+	(conn execute: 'CREATE TABLE events (name VARCHAR, count BIGINT)') destroy.
+	statement := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
+	[
+		statement
+			bind: 'click' at: 1;
+			bind: 1 at: 2;
+			yourself.
+		statement execute destroy.
+	] ensure: [ statement destroy ].
+	result := conn execute: 'SELECT name, count FROM events'.
+	[
+		self assert: result rowCount equals: 1.
+		self assert: (result first at: 'name') equals: 'click'.
+		self assert: (result first at: 'count') equals: 1.
+	] ensure: [ result destroy ]
+]
+
+{ #category : 'tests - phase 3: prepared statements' }
+DuckDBConnectionTest >> testGenericBindNull [
+	| statement result |
+	(conn execute: 'CREATE TABLE items (name VARCHAR, note VARCHAR)') destroy.
+	statement := conn prepare: 'INSERT INTO items VALUES (?, ?)'.
+	[
+		statement
+			bind: 'box' at: 1;
+			bind: nil at: 2;
+			yourself.
+		statement execute destroy.
+	] ensure: [ statement destroy ].
+	result := conn execute: 'SELECT note FROM items WHERE name = ''box'''.
+	[
+		self assert: result rowCount equals: 1.
+		self assert: (result first at: 'note') isNil.
+	] ensure: [ result destroy ]
+]
+
+{ #category : 'tests - phase 3: prepared statements' }
+DuckDBConnectionTest >> testExecuteWith [
+	| statement result |
+	(conn execute: 'CREATE TABLE events (name VARCHAR, count BIGINT)') destroy.
+	statement := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
+	[
+		statement executeWith: #('click' 1).
+	] ensure: [ statement destroy ].
+	result := conn execute: 'SELECT name, count FROM events'.
+	[
+		self assert: (result first at: 'name') equals: 'click'.
+		self assert: (result first at: 'count') equals: 1.
+	] ensure: [ result destroy ]
+]
+
+{ #category : 'tests - phase 3: prepared statements' }
+DuckDBConnectionTest >> testExecuteWithParameters [
+	| result |
+	(conn execute: 'CREATE TABLE events (name VARCHAR, count BIGINT)') destroy.
+	(conn execute: 'INSERT INTO events VALUES (?, ?)' with: #('click' 1)) destroy.
+	result := conn execute: 'SELECT name, count FROM events'.
+	[
+		self assert: (result first at: 'name') equals: 'click'.
+		self assert: (result first at: 'count') equals: 1.
+	] ensure: [ result destroy ]
+]
+
+{ #category : 'tests - phase 3: prepared statements' }
+DuckDBConnectionTest >> testExecuteWithReuse [
+	| result |
+	(conn execute: 'CREATE TABLE metrics (name VARCHAR, value BIGINT)') destroy.
+	(conn
+		execute: 'INSERT INTO metrics VALUES (?, ?)'
+		with: #('alpha' 10)) destroy.
+	(conn
+		execute: 'INSERT INTO metrics VALUES (?, ?)'
+		with: #('beta' 20)) destroy.
+	result := conn execute: 'SELECT value FROM metrics ORDER BY name'.
+	[
+		self assert: (result collect: [:row | row at: 'value'])
+			equals: #(10 20) asOrderedCollection.
+	] ensure: [ result destroy ]
+]
+
 { #category : 'tests - phase 4: csv reading' }
 DuckDBConnectionTest >> testReadCsvAutoReturnsColumnNames [
 	"Phase 4: read_csv_auto infers column names from the header row of a CSV file."

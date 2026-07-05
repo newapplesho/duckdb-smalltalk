@@ -123,13 +123,27 @@ DuckDB openMemory withConnection: [:conn |
     (conn execute: 'SELECT * FROM range(10) t(n)')
         collect: [:row | row at: 'n'] ].
 
-"Prepared statements"
+"Parameterized query (one-shot convenience)"
+| db conn result |
+db := DuckDB openMemory.
+conn := db connect.
+(conn execute: 'CREATE TABLE events (name VARCHAR, count INTEGER)') destroy.
+(conn execute: 'INSERT INTO events VALUES (?, ?)' with: #('click' 1)) destroy.
+(conn execute: 'INSERT INTO events VALUES (?, ?)' with: #('view' 5)) destroy.
+result := conn execute: 'SELECT * FROM events WHERE count > ?' with: #(2).
+result do: [:row | Transcript showCr: (row at: 'name')].  "=> view"
+result destroy.
+conn disconnect.
+db close.
+
+"Prepared statements (reusable)"
 | db conn stmt |
 db := DuckDB openMemory.
 conn := db connect.
-conn execute: 'CREATE TABLE events (name VARCHAR, count INTEGER)'.
+(conn execute: 'CREATE TABLE events (name VARCHAR, count INTEGER)') destroy.
 stmt := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
-stmt bindString: 'click' at: 1; bindInteger: 1 at: 2; execute.
+(stmt executeWith: #('click' 1)) destroy.
+(stmt executeWith: #('view' 5)) destroy.
 stmt destroy.
 conn disconnect.
 db close.
@@ -144,6 +158,9 @@ conn := db connect.
 conn disconnect.
 db close.
 ```
+
+For explicit type binding (`bindString:at:`, `bindInteger:at:`, etc.) and the
+full type mapping table, see the [binding guide](docs/binding.md).
 
 ## Package Structure
 
