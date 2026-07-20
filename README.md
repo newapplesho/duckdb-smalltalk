@@ -4,8 +4,8 @@ Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UF
 
 ## Requirements
 
-- Pharo 12 or 13 (`pharo-local/` — installed separately, see below)
-- `libduckdb` for your platform — see `lib/README.md`
+- Pharo 12 or 13
+- `libduckdb` for your platform (installed in step 1 below)
 
 ## Platform support
 
@@ -15,23 +15,20 @@ Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UF
 | Linux | Tested on CI (Pharo 12 & 13, every push) |
 | Windows | Not yet tested — reports welcome |
 
-## Quick Start
+## Installation
 
-### 1. Install Pharo
+### 1. Install libduckdb
 
-```bash
-make setup
-# For Pharo 12: make setup PHARO_VERSION=120
-```
-
-### 2. Get libduckdb
+DuckDB is a native library, so you need the shared library before loading the Smalltalk
+code. Download the release that matches your platform (DuckDB v1.5.2) and unzip it
+anywhere you like:
 
 **macOS:**
 
 ```bash
 curl -fsSL -o /tmp/libduckdb-osx.zip \
   https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-osx-universal.zip
-unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d lib/
+unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d ~/duckdb/
 ```
 
 **Linux:**
@@ -39,74 +36,61 @@ unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d lib/
 ```bash
 curl -fsSL -o /tmp/libduckdb-linux.zip \
   https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
-unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d lib/
+unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d ~/duckdb/
 ```
 
-**Windows** (not yet tested):
-
-```powershell
-Invoke-WebRequest -Uri https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-windows-amd64.zip `
-  -OutFile $env:TEMP\libduckdb.zip
-Expand-Archive $env:TEMP\libduckdb.zip -DestinationPath lib\
-```
-
-For non-standard install paths, set `DUCKDB_LIB_PATH` to the full path of the library file. See `lib/README.md` for details.
-
-### 3. Load the project into Pharo
-
-**Option A: make (macOS / Linux)**
+Then tell Pharo where the file is by setting `DUCKDB_LIB_PATH` **before starting Pharo**
+(the variable must be visible to the Pharo process — exporting it in a shell after Pharo
+is already running has no effect):
 
 ```bash
-make load
+export DUCKDB_LIB_PATH=$HOME/duckdb/libduckdb.dylib   # macOS
+export DUCKDB_LIB_PATH=$HOME/duckdb/libduckdb.so      # Linux
 ```
 
-This runs [scripts/load-project.st](scripts/load-project.st) headlessly — the single
-source of truth for the load expression.
+> **Default library path.** With `DUCKDB_LIB_PATH` unset, `DuckDBLibrary` looks for
+> `<image directory>/../lib/libduckdb.dylib` (`.so` on Linux). That path mirrors this
+> repository's own layout when it is cloned for development, so it rarely exists next to
+> an image of your own — which is why the variable is set explicitly above.
+>
+> Note that `DUCKDB_LIB_PATH` holds the full path to the library *file*, not a directory
+> to search. On macOS this is the only reliable option anyway: SIP causes
+> `DYLD_LIBRARY_PATH` to be ignored.
 
-**Option B: Pharo Playground** (Tools > Playground, then Ctrl+D to run)
+See [lib/README.md](lib/README.md) for the full lookup order.
 
-Paste the contents of [scripts/load-project.st](scripts/load-project.st):
+### 2. Load the library
+
+In a Pharo Playground (Tools > Playground, then Ctrl+D to run):
 
 ```smalltalk
 Metacello new
     baseline: 'DuckDB';
-    repository: 'tonel://' , (FileLocator imageDirectory / '..' / 'src') resolve fullName;
-    onConflict: [ :ex | ex allow ];
-    load: 'all'.
+    repository: 'github://newapplesho/duckdb-smalltalk:main/src';
+    load.
 ```
 
-**Option C: headless without make (e.g. Windows)**
+This loads `DuckDB-Core` and `DuckDB-FFI`. To load the SUnit tests as well, use
+`load: 'all'.` instead of `load.`.
 
-```powershell
-cd pharo-local
-.\pharo.exe --headless Pharo.image eval --save "Metacello new baseline: 'DuckDB'; repository: 'tonel://' , (FileLocator imageDirectory / '..' / 'src') resolve fullName; onConflict: [ :ex | ex allow ]; load: 'all'."
+### 3. Verify
+
+```smalltalk
+"Should print the DuckDB version, e.g. 'v1.5.2'"
+DuckDBLibrary uniqueInstance duckdbLibraryVersion.
+
+"Should answer an OrderedCollection(42)"
+DuckDB openMemory withConnection: [:conn |
+    (conn execute: 'SELECT 42 AS n') collect: [:row | row at: 'n'] ].
 ```
 
-### 4. Run tests
-
-**macOS / Linux:**
-
-```bash
-make test
-```
-
-**Windows** (not yet tested):
-
-```powershell
-cd pharo-local
-.\pharo.exe --headless Pharo.image test --junit-xml-output 'DuckDB.*'
-```
+If the first line raises an error about the library not being found, `DUCKDB_LIB_PATH`
+is either unset or was set after Pharo had already started.
 
 ## Usage
 
 Run the snippets below in the Pharo **Playground** (Tools > Playground, or Ctrl+O+W).
 Select code and press **Ctrl+D** to execute.
-
-**Start Pharo GUI (macOS / Linux):**
-
-```bash
-make ui
-```
 
 ```smalltalk
 "In-memory query"
@@ -180,17 +164,14 @@ the layered structure, the runtime query flow, and a reading guide to the classe
 
 See [ROADMAP.md](ROADMAP.md) for planned features and the development direction.
 
-## Local Development Workflow
+## Development
 
-```
-[Daily cycle]
-make ui                          # open GUI (macOS / Linux)
-# edit in System Browser, Ctrl+S to compile
-# Tools - Test Runner (Ctrl+O+U) to run tests
-# Tools - Iceberg to commit, .class.st files update
-# exit Pharo
-git add src/ && git commit -m "feat: ..."
-```
+For the workflow of working on the library itself — setting up a local Pharo image,
+loading `src/`, and the edit/test cycle — see **[docs/development.md](docs/development.md)**.
 
-Editing Tonel files directly instead? Reload them into the image with `make load`,
-then run `make test`.
+| Command | What it does |
+|---------|--------------|
+| `make setup` | Download a local Pharo image + VM into `pharo-local/` |
+| `make load` | Load (or reload) `src/` into that image |
+| `make test` | Run the SUnit suite headless |
+| `make ui` | Open the Pharo GUI |
