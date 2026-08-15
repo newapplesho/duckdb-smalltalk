@@ -201,7 +201,7 @@ DuckDBTypeMapper >> convertType: typeCode result: resultStruct col: colIdx row: 
 { #category : 'private' }
 DuckDBTypeMapper >> conversionSelectorFor: typeCode [
 	"Answer my selector that converts a cell of the given type to a Smalltalk object.
-	 VARCHAR and unsupported types fall back to string conversion."
+	 An unmapped type signals DuckDBUnsupportedTypeError (see complexConversionSelectorFor:)."
 	^ (self numericConversionSelectorFor: typeCode)
 		ifNil: [ self complexConversionSelectorFor: typeCode ]
 ]
@@ -225,12 +225,12 @@ DuckDBTypeMapper >> numericConversionSelectorFor: typeCode [
 { #category : 'private' }
 DuckDBTypeMapper >> complexConversionSelectorFor: typeCode [
 	"UHUGEINT reuses the exact text-based integer conversion.
-	 ENUM / UUID / TIMESTAMP_TZ / LIST / STRUCT / MAP cannot be extracted through
-	 the deprecated per-cell value API (verified: duckdb_value_varchar returns NULL
-	 for them). They never reach this method: DuckDBResult>>needsChunkReading
-	 detects the chunk-only type codes and reads the whole result through the data
-	 chunk API (DuckDBVectorReader). The stringFrom: fallback below is only the
-	 safety net for any other unhandled scalar type."
+	 ENUM / UUID / TIMESTAMP_TZ / LIST / STRUCT / MAP never reach this method:
+	 DuckDBResult>>needsChunkReading detects the chunk-only type codes and reads the
+	 whole result through the data chunk API (DuckDBVectorReader). Any type not
+	 explicitly mapped here (or in numericConversionSelectorFor:) signals
+	 DuckDBUnsupportedTypeError, mirroring the chunk path — no silent stringify."
+	typeCode = self class typeVarchar ifTrue: [ ^ #stringFrom:col:row: ].
 	typeCode = self class typeDate ifTrue: [ ^ #dateFrom:col:row: ].
 	typeCode = self class typeTime ifTrue: [ ^ #timeFrom:col:row: ].
 	typeCode = self class typeTimestamp ifTrue: [ ^ #timestampFrom:col:row: ].
@@ -239,7 +239,7 @@ DuckDBTypeMapper >> complexConversionSelectorFor: typeCode [
 	typeCode = self class typeDecimal ifTrue: [ ^ #decimalFrom:col:row: ].
 	typeCode = self class typeHugeInt ifTrue: [ ^ #hugeintFrom:col:row: ].
 	typeCode = self class typeUHugeInt ifTrue: [ ^ #hugeintFrom:col:row: ].
-	^ #stringFrom:col:row:
+	^ DuckDBUnsupportedTypeError signalForTypeCode: typeCode
 ]
 
 { #category : 'private - conversions' }

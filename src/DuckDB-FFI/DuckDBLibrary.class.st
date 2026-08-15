@@ -235,6 +235,13 @@ DuckDBLibrary >> duckdbDestroyPrepare: stmt [
 ]
 
 { #category : 'ffi - prepared' }
+DuckDBLibrary >> duckdbPrepareError: stmt [
+	"const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement).
+	 Library-owned const char* — String return is correct (no free)."
+	^ self ffiCall: #(String duckdb_prepare_error(DuckDBPreparedHandle* stmt))
+]
+
+{ #category : 'ffi - prepared' }
 DuckDBLibrary >> duckdbExecutePrepared: stmt outResult: result [
 	"duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result)"
 	^ self ffiCall: #(int duckdb_execute_prepared(DuckDBPreparedHandle* stmt, ExternalAddress* result))
@@ -358,20 +365,24 @@ DuckDBLibrary >> duckdbVectorGetValidity: vector [
 	^ self ffiCall: #(void* duckdb_vector_get_validity(void* vector))
 ]
 
-{ #category : 'ffi - data chunk' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbListVectorGetChild: vector [
 	"duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector)
-	 Child vector holding all list elements; valid while the parent vector is alive."
+	 Child vector holding all list elements; valid while the parent vector is alive.
+
+	 NOTE: this and the other methods in the 'ffi - nested type' protocol are
+	 scaffolding for LIST/STRUCT/MAP decoding, which is not yet implemented.
+	 They have no callers in Core today."
 	^ self ffiCall: #(void* duckdb_list_vector_get_child(void* vector))
 ]
 
-{ #category : 'ffi - data chunk' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbListVectorGetSize: vector [
 	"idx_t duckdb_list_vector_get_size(duckdb_vector vector)"
 	^ self ffiCall: #(uint64 duckdb_list_vector_get_size(void* vector))
 ]
 
-{ #category : 'ffi - data chunk' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbStructVectorGetChild: vector index: childIdx [
 	"duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index)"
 	^ self ffiCall: #(void* duckdb_struct_vector_get_child(void* vector, uint64 childIdx))
@@ -397,41 +408,41 @@ DuckDBLibrary >> duckdbDestroyLogicalType: logicalTypeSlot [
 	^ self ffiCall: #(void duckdb_destroy_logical_type(void* logicalTypeSlot))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbListTypeChildType: logicalType [
 	"duckdb_logical_type duckdb_list_type_child_type(duckdb_logical_type type)
 	 Accepts LIST (and MAP). Returned type must be destroyed."
 	^ self ffiCall: #(void* duckdb_list_type_child_type(void* logicalType))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbStructTypeChildCount: logicalType [
 	"idx_t duckdb_struct_type_child_count(duckdb_logical_type type)"
 	^ self ffiCall: #(uint64 duckdb_struct_type_child_count(void* logicalType))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbStructTypeChildName: logicalType index: childIdx [
 	"char *duckdb_struct_type_child_name(duckdb_logical_type type, idx_t index)
 	 Returned char* must be freed with duckdbFree:."
 	^ self ffiCall: #(void* duckdb_struct_type_child_name(void* logicalType, uint64 childIdx))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbStructTypeChildType: logicalType index: childIdx [
 	"duckdb_logical_type duckdb_struct_type_child_type(duckdb_logical_type type, idx_t index)
 	 Returned type must be destroyed."
 	^ self ffiCall: #(void* duckdb_struct_type_child_type(void* logicalType, uint64 childIdx))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbMapTypeKeyType: logicalType [
 	"duckdb_logical_type duckdb_map_type_key_type(duckdb_logical_type type)
 	 Returned type must be destroyed."
 	^ self ffiCall: #(void* duckdb_map_type_key_type(void* logicalType))
 ]
 
-{ #category : 'ffi - logical type' }
+{ #category : 'ffi - nested type' }
 DuckDBLibrary >> duckdbMapTypeValueType: logicalType [
 	"duckdb_logical_type duckdb_map_type_value_type(duckdb_logical_type type)
 	 Returned type must be destroyed."

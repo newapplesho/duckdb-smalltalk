@@ -45,7 +45,7 @@ DuckDB data types: [official overview](https://duckdb.org/docs/stable/sql/data_t
       [data chunk API](https://duckdb.org/docs/stable/clients/c/data_chunk)
       (`DuckDBVectorReader`)
 - [ ] LIST / STRUCT / MAP nested types — also needs the data chunk API
-      (currently routed to the chunk path but raise `Unsupported column type code`)
+      (currently routed to the chunk path but signal `DuckDBUnsupportedTypeError`)
 
 ## Bulk data and performance
 

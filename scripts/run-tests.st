@@ -1,9 +1,12 @@
 "Run all DuckDB tests and print results to the Transcript.
  Paste into the Playground and Ctrl+D, or run headlessly:
-   DYLD_LIBRARY_PATH=../lib ./pharo Pharo.image test 'DuckDB-Tests'"
+   ./pharo Pharo.image test 'DuckDB-Tests'
+ (set DUCKDB_LIB_PATH before launching Pharo if the library is not under lib/;
+ DYLD_LIBRARY_PATH is ignored by macOS SIP)."
 | suite result |
 suite := TestSuite new.
 suite addTests: DuckDBConnectionTest buildSuite tests.
+suite addTests: DuckDBTypeTest buildSuite tests.
 result := suite run.
 Transcript showCr: '=== DuckDB Test Results ==='.
 Transcript showCr: 'Run:    ' , result runCount printString.

@@ -53,7 +53,7 @@ flowchart TB
 2. **`DuckDBConnection`** — `execute:`でSQLを実行し、`prepare:`でプリペアドステートメントを作ります。
 3. **`DuckDBResult`・`DuckDBRow`** — 結果を列挙し（`do:`・`collect:`・`select:`）、行からカラムを取り出します（`at:`）。
 4. **`DuckDBStatement`** — パラメータをバインドして実行します（`bind…:at:`・`execute`）。
-5. **`DuckDBVectorReader`・`DuckDBTypeMapper`** — 内部用。データチャンクから値を取り出し、C型をSmalltalkオブジェクトに変換します（ネストしたLIST / STRUCT / MAP、ENUM、UUID、TIMESTAMP_TZにも対応）。
+5. **`DuckDBVectorReader`・`DuckDBTypeMapper`** — 内部用。データチャンクから値を取り出し、C型をSmalltalkオブジェクトに変換します（ENUM、UUID、TIMESTAMP_TZに対応）。ネストしたLIST / STRUCT / MAPは未対応で、これらを返すクエリは`DuckDBUnsupportedTypeError`を送出します（ROADMAP.mdを参照）。
 6. **`DuckDBLibrary`** — DuckDBのC関数を`ffiCall:`として宣言する最下層。ハンドルや構造体もここにあります。
 
 ## クエリ実行フロー
@@ -122,6 +122,7 @@ classDiagram
     DuckDBError <|-- DuckDBConnectionError
     DuckDBError <|-- DuckDBQueryError
     DuckDBError <|-- DuckDBBindError
+    DuckDBError <|-- DuckDBUnsupportedTypeError
     class DuckDBError {
         errorCode
     }
@@ -130,5 +131,6 @@ classDiagram
 - **`DuckDBConnectionError`** — `open`・`connect`の失敗
 - **`DuckDBQueryError`** — SQL実行の失敗
 - **`DuckDBBindError`** — パラメータバインドの失敗
+- **`DuckDBUnsupportedTypeError`** — 結果カラムが未対応の型（ネストしたLIST / STRUCT / MAP）で復号できない
 
 ライブラリのエラーをまとめて扱いたいときは`DuckDBError`で捕捉します。特定のエラーだけ扱いたいときは、そのサブクラスで捕捉します。

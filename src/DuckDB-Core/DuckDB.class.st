@@ -3,11 +3,18 @@ I represent a DuckDB database instance.
 
 I manage the database lifecycle: open with `DuckDB open:` or `DuckDB openMemory`,
 and always close with `close` when done.
-Create connections with `connect`, or use `withConnection:` for automatic cleanup.
+Create connections with `connect` (disconnect them yourself) or use
+`withConnection:` to auto-disconnect a single connection while I stay open.
+For a throwaway database that is opened and fully closed around a block, use the
+class-side `DuckDB class >> openMemoryConnectionDo:` or `open:connectionDo:`.
 
 Example:
 	db := DuckDB openMemory.
 	[ (db execute: 'SELECT 42 AS n') destroy ] ensure: [ db close ].
+
+Example (throwaway, fully managed):
+	DuckDB openMemoryConnectionDo: [:conn |
+		(conn execute: 'SELECT 42 AS n') destroy ].
 "
 Class {
 	#name : 'DuckDB',
@@ -36,6 +43,22 @@ DuckDB class >> openMemory [
 	^ self open: ':memory:'
 ]
 
+{ #category : 'instance creation' }
+DuckDB class >> openMemoryConnectionDo: aBlock [
+	"Open an in-memory database, evaluate aBlock with a fresh connection, then
+	 disconnect and close the database on exit. Returns aBlock's value."
+	^ self open: ':memory:' connectionDo: aBlock
+]
+
+{ #category : 'instance creation' }
+DuckDB class >> open: aPathString connectionDo: aBlock [
+	"Open the database at aPathString, evaluate aBlock with a fresh connection,
+	 then disconnect and close the database on exit. Returns aBlock's value."
+	| db |
+	db := self open: aPathString.
+	^ [ db withConnection: aBlock ] ensure: [ db close ]
+]
+
 { #category : 'private' }
 DuckDB >> initializePath: aPathString [
 	path := aPathString
@@ -51,7 +74,9 @@ DuckDB >> open [
 	returnCode = DuckDBLibrary success
 		ifFalse: [
 			slot free.
-			DuckDBConnectionError signal: 'Failed to open database: ' , path ].
+			DuckDBConnectionError
+				signal: 'Failed to open database: ' , path
+				code: returnCode ].
 	handle := slot
 ]
 
@@ -80,16 +105,19 @@ DuckDB >> execute: sqlString [
 
 { #category : 'actions' }
 DuckDB >> withConnection: aBlock [
-	"Evaluate aBlock with a fresh connection, ensuring disconnection on exit."
+	"Evaluate aBlock with a fresh connection, disconnecting it on exit.
+	 The database itself stays open — the caller owns it and must close it.
+	 For a throwaway database opened and fully closed around the block, use the
+	 class-side DuckDB class >> openMemoryConnectionDo: or open:connectionDo:."
 	| conn |
 	conn := self connect.
 	^ [aBlock value: conn]
-		ensure: [conn disconnect. self close]
+		ensure: [conn disconnect]
 ]
 
 { #category : 'testing' }
 DuckDB >> isOpen [
-	^ handle isNil not
+	^ handle notNil
 ]
 
 { #category : 'accessing' }

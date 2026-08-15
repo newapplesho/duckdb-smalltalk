@@ -47,14 +47,21 @@ DuckDBConnection >> initializeOn: aDuckDB handle: aDbHandle [
 	returnCode = DuckDBLibrary success
 		ifFalse: [
 			slot free.
-			DuckDBConnectionError signal: 'Failed to connect to database' ].
+			DuckDBConnectionError
+				signal: 'Failed to connect to database'
+				code: returnCode ].
 	handle := slot
 ]
 
 { #category : 'actions' }
 DuckDBConnection >> execute: sqlString [
 	"Execute sqlString and return a DuckDBResult.
-	 Caller is responsible for calling destroy on the result."
+	 Caller must destroy the result, inside an ensure: block.
+	 A column whose type this library cannot decode signals
+	 DuckDBUnsupportedTypeError: eagerly here for chunk-only nested types
+	 (LIST/STRUCT/MAP), so no result is returned; or lazily when the offending
+	 cell is read for other unsupported types (e.g. ARRAY), in which case a result
+	 IS returned and the usual ensure: [ result destroy ] still releases it."
 	| resultStruct returnCode |
 	self isConnected ifFalse: [
 		DuckDBConnectionError signal: 'Connection is closed' ].
@@ -68,7 +75,10 @@ DuckDBConnection >> execute: sqlString [
 			| msg |
 			msg := DuckDBLibrary uniqueInstance duckdbResultError: resultStruct.
 			DuckDBLibrary uniqueInstance duckdbDestroyResult: resultStruct.
-			DuckDBQueryError signal: (msg ifNil: ['Query failed']) ].
+			resultStruct free.
+			DuckDBQueryError
+				signal: (msg ifNil: ['Query failed'])
+				code: returnCode ].
 	^ DuckDBResult on: resultStruct
 ]
 
@@ -99,7 +109,7 @@ DuckDBConnection >> disconnect [
 
 { #category : 'testing' }
 DuckDBConnection >> isConnected [
-	^ handle isNil not
+	^ handle notNil
 ]
 
 { #category : 'accessing' }

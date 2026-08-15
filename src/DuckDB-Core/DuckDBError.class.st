@@ -3,7 +3,8 @@ I am the root of the DuckDB exception hierarchy.
 
 I carry an optional `errorCode` (the duckdb_state return value).
 Catch me to handle any DuckDB failure, or catch one of my subclasses
-(DuckDBConnectionError, DuckDBQueryError, DuckDBBindError) for specific cases.
+(DuckDBConnectionError, DuckDBQueryError, DuckDBBindError,
+DuckDBUnsupportedTypeError) for specific cases.
 "
 Class {
 	#name : 'DuckDBError',

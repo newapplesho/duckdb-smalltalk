@@ -29,10 +29,18 @@ Users interact with five classes: `DuckDB`, `DuckDBConnection`, `DuckDBResult`,
 ## FFI Protocol Names (DuckDBLibrary only)
 
 ```
-'ffi - lifecycle'      duckdb_open, duckdb_close, duckdb_connect, duckdb_disconnect
-'ffi - query'          duckdb_query, duckdb_prepare
-'ffi - result access'  duckdb_value_*, duckdb_column_*
-'ffi - bind'           duckdb_bind_*
+'ffi - lifecycle'        duckdb_open, duckdb_close, duckdb_connect, duckdb_disconnect
+'ffi - query'            duckdb_query, duckdb_destroy_result
+'ffi - prepared'         duckdb_prepare, duckdb_destroy_prepare, duckdb_prepare_error,
+                         duckdb_execute_prepared, duckdb_nparams
+'ffi - bind'             duckdb_bind_*
+'ffi - result access'    duckdb_value_*, duckdb_result_error
+'ffi - result metadata'  duckdb_row_count, duckdb_column_count, duckdb_column_name, duckdb_column_type
+'ffi - data chunk'       duckdb_fetch_chunk, duckdb_data_chunk_*, duckdb_vector_get_*
+'ffi - logical type'     duckdb_get_type_id, duckdb_destroy_logical_type, duckdb_enum_*, duckdb_decimal_*
+'ffi - nested type'      duckdb_list_*/struct_*/map_* — scaffolding for LIST/STRUCT/MAP, no callers yet
+'ffi - memory'           duckdb_free
+'ffi - utility'          duckdb_library_version
 ```
 
 ## Memory Ownership (must pair with `ensure:`)
@@ -50,7 +58,9 @@ DuckDB resource lifetime conflict; see `docs/architecture.md`).
 ## Error Hierarchy
 
 `DuckDBError` (carries `errorCode`) with subclasses `DuckDBConnectionError`,
-`DuckDBQueryError`, `DuckDBBindError`. Error messages are extracted from the
+`DuckDBQueryError`, `DuckDBBindError`, `DuckDBUnsupportedTypeError` (a result
+column has a type not decodable yet — nested LIST/STRUCT/MAP/ARRAY/UNION or any
+unmapped type). Error messages are extracted from the
 C API (`duckdb_result_error`) before destroying the failed result.
 
 ## Handle Classes
@@ -63,7 +73,8 @@ subclasses with `#type: 'bytes'` and class-side `asExternalTypeOn:` returning
 
 By-value structs (`FFIExternalStructure` subclasses, see uffi-patterns.md):
 `DuckDBDateStruct` (duckdb_date), `DuckDBTimeStruct` (duckdb_time),
-`DuckDBTimestampStruct` (duckdb_timestamp), `DuckDBBlobStruct` (duckdb_blob).
+`DuckDBTimestampStruct` (duckdb_timestamp), `DuckDBIntervalStruct` (duckdb_interval),
+`DuckDBBlobStruct` (duckdb_blob).
 Note: C also defines `duckdb_date_struct` (year/month/day form) — not wrapped.
 
 ## Type Mapping (DuckDBTypeMapper)
@@ -107,7 +118,7 @@ the **whole** result is materialized through the data chunk / vector API
 
 **Known limitation:** `chunkOnlyTypeCodes` also lists LIST/STRUCT/MAP, so a query
 returning them takes the chunk path, but `DuckDBVectorReader` has no decoder for
-nested types and raises `Unsupported column type code`. Nested-type support is
+nested types and signals `DuckDBUnsupportedTypeError`. Nested-type support is
 not implemented yet.
 
 Bind support (`DuckDBStatement`): Boolean, Integer (int64), Float (double),
@@ -119,18 +130,24 @@ Generic `bind:at:` auto-detects type from the Smalltalk value's class.
 ## Library Loading
 
 `DuckDBLibrary` resolves the library per platform; `DUCKDB_LIB_PATH` overrides
-on all platforms. Defaults: `<repo>/lib/libduckdb.dylib` (macOS, absolute path
-for SIP), `<repo>/lib/libduckdb.so` (Linux), `duckdb.dll` (Windows PATH search).
+on all platforms (checked first). The platform default is built from the image
+directory via `FileLocator imageDirectory parent / 'lib' / ...`:
+`<image dir>/../lib/libduckdb.dylib` (macOS, absolute path for SIP),
+`<image dir>/../lib/libduckdb.so` (Linux), `duckdb.dll` (Windows PATH search).
+With the Pharo image in `pharo-local/` inside the repo, this resolves to
+`<repo>/lib/...`.
 
 ## Tests
 
-- Test class: `DuckDBConnectionTest`. Fixture: in-memory database (`:memory:`)
-  opened in `setUp`, closed defensively in `tearDown`.
+- Test classes: `DuckDBConnectionTest` (lifecycle/query/prepared/CSV) and
+  `DuckDBTypeTest` (type round-trips + chunk path). Fixture: in-memory database
+  (`:memory:`) opened in `setUp`, closed defensively in `tearDown`.
 - Every `DuckDBResult` and `DuckDBStatement` created in a test must be destroyed
   in an `ensure:` block.
 
 ## Reference Docs
 
 - Design rationale: `docs/architecture.md`
-- DuckDB C API source of truth: `lib/duckdb.h` and
+- DuckDB C API source of truth: `lib/duckdb.h` (downloaded by `make setup`,
+  not committed) and
   https://github.com/duckdb/duckdb/blob/v1.5.2/src/include/duckdb.h

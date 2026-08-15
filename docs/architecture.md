@@ -72,7 +72,7 @@ System Browser with the detail.
 2. **`DuckDBConnection`** — runs SQL with `execute:` and builds prepared statements with `prepare:`.
 3. **`DuckDBResult` / `DuckDBRow`** — iterate results (`do:`, `collect:`, `select:`) and read a row's columns (`at:`).
 4. **`DuckDBStatement`** — bind parameters and run (`bind…:at:`, `execute`).
-5. **`DuckDBVectorReader` / `DuckDBTypeMapper`** — internal: read values out of data chunks and convert C types to Smalltalk objects (including nested LIST / STRUCT / MAP, ENUM, UUID, TIMESTAMP_TZ).
+5. **`DuckDBVectorReader` / `DuckDBTypeMapper`** — internal: read values out of data chunks and convert C types to Smalltalk objects (including ENUM, UUID, TIMESTAMP_TZ). Nested LIST / STRUCT / MAP are not yet supported — a query returning them signals `DuckDBUnsupportedTypeError` (see ROADMAP.md).
 6. **`DuckDBLibrary`** — the bottom layer that declares every DuckDB C function as a `ffiCall:`; the handles and structs live here too.
 
 ## Query execution flow
@@ -146,6 +146,7 @@ classDiagram
     DuckDBError <|-- DuckDBConnectionError
     DuckDBError <|-- DuckDBQueryError
     DuckDBError <|-- DuckDBBindError
+    DuckDBError <|-- DuckDBUnsupportedTypeError
     class DuckDBError {
         errorCode
     }
@@ -154,6 +155,7 @@ classDiagram
 - **`DuckDBConnectionError`** — open / connect failed
 - **`DuckDBQueryError`** — SQL execution failed
 - **`DuckDBBindError`** — parameter binding failed
+- **`DuckDBUnsupportedTypeError`** — a result column has a type this library cannot decode yet (nested LIST / STRUCT / MAP)
 
 Catch `DuckDBError` to handle every failure from the library; catch a specific
 subclass to handle only that case.
