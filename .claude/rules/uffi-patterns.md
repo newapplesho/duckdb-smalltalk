@@ -218,7 +218,7 @@ DuckDBLibrary >> duckdbFree: pointer [
 "Core layer: read as UTF-8, free in ensure:"
 pointer := lib duckdbValueVarchar: resultStruct col: colIdx row: rowIdx.
 pointer isNull ifTrue: [ ^ nil ].
-^ [ pointer readStringUTF8 ] ensure: [ lib duckdbFree: pointer ]
+^ [ pointer utf8StringFromCString ] ensure: [ lib duckdbFree: pointer ]
 ```
 
 `String` returns are only correct for `const char*` results owned by the library
@@ -231,14 +231,20 @@ comments for every string-returning function.
 Defining `class >> ffiLibraryName` does nothing and raises `subclassResponsibility` errors at runtime.
 
 ```smalltalk
-"Correct: instance-side, absolute path via FileLocator (bypasses macOS SIP)"
+"Correct: instance-side. Check the env override FIRST, then fall back to an
+ absolute path via FileLocator (bypasses macOS SIP)."
 DuckDBLibrary >> macLibraryName [
+    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
     ^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.dylib') pathString
 ]
 DuckDBLibrary >> unixLibraryName [
+    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
     ^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.so') pathString
 ]
-DuckDBLibrary >> win32LibraryName [ ^ 'duckdb.dll' ]
+DuckDBLibrary >> win32LibraryName [
+    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+    ^ 'duckdb.dll'
+]
 
 "Wrong: class-side ffiLibraryName is never called by UFFI"
 DuckDBLibrary class >> ffiLibraryName [ ... ]

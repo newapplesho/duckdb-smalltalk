@@ -46,7 +46,10 @@ DuckDBResult >> initializeOn: aDuckDBResultStruct [
 	columnCount := lib duckdbResultColumnCount: resultStruct.
 	columnNames := (0 to: columnCount - 1) collect: [:i |
 		lib duckdbColumnName: resultStruct col: i].
-	self needsChunkReading ifTrue: [ self materializeChunks ]
+	"materializeChunks can raise (e.g. an unsupported nested type). It runs before
+	 the caller gets a handle to destroy, so free the result here and re-signal."
+	self needsChunkReading ifTrue: [
+		[ self materializeChunks ] on: Error do: [:e | self destroy. e pass ] ]
 ]
 
 { #category : 'private' }

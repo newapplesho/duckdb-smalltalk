@@ -80,8 +80,10 @@ This loads `DuckDB-Core` and `DuckDB-FFI`. To load the SUnit tests as well, use
 DuckDBLibrary uniqueInstance duckdbLibraryVersion.
 
 "Should answer an OrderedCollection(42)"
-DuckDB openMemory withConnection: [:conn |
-    (conn execute: 'SELECT 42 AS n') collect: [:row | row at: 'n'] ].
+DuckDB openMemoryConnectionDo: [:conn |
+    | result |
+    result := conn execute: 'SELECT 42 AS n'.
+    [ result collect: [:row | row at: 'n'] ] ensure: [ result destroy ] ].
 ```
 
 If the first line raises an error about the library not being found, `DUCKDB_LIB_PATH`
@@ -102,10 +104,11 @@ result do: [:row |
     Transcript showCr: (row at: 's') ].
 db close.
 
-"Block-based resource management (close/disconnect called automatically)"
-DuckDB openMemory withConnection: [:conn |
-    (conn execute: 'SELECT * FROM range(10) t(n)')
-        collect: [:row | row at: 'n'] ].
+"Block-based resource management (database and connection closed automatically)"
+DuckDB openMemoryConnectionDo: [:conn |
+    | result |
+    result := conn execute: 'SELECT * FROM range(10) t(n)'.
+    [ result collect: [:row | row at: 'n'] ] ensure: [ result destroy ] ].
 
 "Parameterized query (one-shot convenience)"
 | db conn result |

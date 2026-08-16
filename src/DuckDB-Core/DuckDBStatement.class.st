@@ -50,8 +50,17 @@ DuckDBStatement >> initializeOn: aDuckDBConnection sql: sqlString [
 		outStatement: slot.
 	returnCode = DuckDBLibrary success
 		ifFalse: [
+			| lib msg |
+			lib := DuckDBLibrary uniqueInstance.
+			"duckdb_prepare allocates a statement even on failure: read the real
+			 error text, then destroy it. duckdb_destroy_prepare frees the C-side
+			 statement; slot free releases our 8-byte handle."
+			msg := lib duckdbPrepareError: (slot pointerAt: 1).
+			lib duckdbDestroyPrepare: slot.
 			slot free.
-			DuckDBQueryError signal: 'Failed to prepare statement: ' , sqlString ].
+			DuckDBQueryError
+				signal: (msg ifNil: ['Failed to prepare statement: ' , sqlString])
+				code: returnCode ].
 	handle := slot
 ]
 
@@ -177,7 +186,10 @@ DuckDBStatement >> bindBlob: aByteArray at: paramIndex [
 { #category : 'private' }
 DuckDBStatement >> checkBindResult: returnCode at: paramIndex [
 	returnCode = DuckDBLibrary success
-		ifFalse: [ DuckDBBindError signal: 'Bind failed at index: ' , paramIndex printString ]
+		ifFalse: [
+			DuckDBBindError
+				signal: 'Bind failed at index: ' , paramIndex printString
+				code: returnCode ]
 ]
 
 { #category : 'actions' }
@@ -189,7 +201,12 @@ DuckDBStatement >> executeWith: anArray [
 
 { #category : 'actions' }
 DuckDBStatement >> execute [
-	"Execute the prepared statement and return a DuckDBResult."
+	"Execute the prepared statement and return a DuckDBResult.
+	 A column whose type this library cannot decode signals
+	 DuckDBUnsupportedTypeError: eagerly here for chunk-only nested types
+	 (LIST/STRUCT/MAP), so no result is returned; or lazily when the offending
+	 cell is read for other unsupported types (e.g. ARRAY), in which case a result
+	 IS returned and the usual ensure: [ result destroy ] still releases it."
 	| resultStruct returnCode |
 	resultStruct := ExternalAddress allocate: DuckDBResultStruct byteSize.
 	returnCode := DuckDBLibrary uniqueInstance
@@ -200,7 +217,10 @@ DuckDBStatement >> execute [
 			| msg |
 			msg := DuckDBLibrary uniqueInstance duckdbResultError: resultStruct.
 			DuckDBLibrary uniqueInstance duckdbDestroyResult: resultStruct.
-			DuckDBQueryError signal: (msg ifNil: ['Execution failed']) ].
+			resultStruct free.
+			DuckDBQueryError
+				signal: (msg ifNil: ['Execution failed'])
+				code: returnCode ].
 	^ DuckDBResult on: resultStruct
 ]
 

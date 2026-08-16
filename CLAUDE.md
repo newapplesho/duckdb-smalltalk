@@ -26,13 +26,15 @@ change will not be reflected in the tests.
 ## Library path
 
 `DuckDBLibrary` looks for the native library at the following per-platform paths.
-Set the `DUCKDB_LIB_PATH` environment variable to override it on any platform (used on
-CI or for non-standard installs).
+`DUCKDB_LIB_PATH` overrides it on any platform and is checked first (used on
+CI or for non-standard installs). The default is built from the image directory
+(`FileLocator imageDirectory parent / 'lib' / ...`); with the image in
+`pharo-local/` inside the repo it resolves to `<repository root>/lib/...`.
 
 | Platform | Default |
 |----------|---------|
-| macOS | `<repository root>/lib/libduckdb.dylib` (absolute path, SIP-safe) |
-| Linux | `<repository root>/lib/libduckdb.so` (absolute path) |
+| macOS | `<image dir>/../lib/libduckdb.dylib` (absolute path, SIP-safe) |
+| Linux | `<image dir>/../lib/libduckdb.so` (absolute path) |
 | Windows | `duckdb.dll` (searched on the system PATH) |
 
 ## Packages

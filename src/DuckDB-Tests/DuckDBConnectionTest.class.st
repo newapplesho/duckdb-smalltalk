@@ -11,6 +11,7 @@ Class {
 
 { #category : 'running' }
 DuckDBConnectionTest >> setUp [
+	super setUp.
 	db   := DuckDB openMemory.
 	conn := db connect.
 ]
@@ -19,6 +20,7 @@ DuckDBConnectionTest >> setUp [
 DuckDBConnectionTest >> tearDown [
 	conn ifNotNil: [ conn isConnected ifTrue: [ conn disconnect ] ].
 	db ifNotNil: [ db isOpen ifTrue: [ db close ] ].
+	super tearDown.
 ]
 
 { #category : 'tests - phase 1: library' }
@@ -26,9 +28,9 @@ DuckDBConnectionTest >> testLibraryVersion [
 	"Phase 1: Confirm libduckdb is loadable and returns a version string."
 	| version |
 	version := DuckDBLibrary uniqueInstance duckdbLibraryVersion.
-	self assert: (version isNil not).
+	self deny: version isNil.
 	self assert: (version isKindOf: String).
-	self assert: version isNotEmpty.
+	self assert: version notEmpty.
 ]
 
 { #category : 'tests - phase 1: library' }
@@ -91,6 +93,8 @@ DuckDBConnectionTest >> testExecuteSelectMultipleRows [
 		count := 0.
 		result do: [:row | count := count + 1].
 		self assert: count equals: 5.
+		self assert: (result collect: [:row | row at: 'n'])
+			equals: #(0 1 2 3 4) asOrderedCollection.
 	] ensure: [ result destroy ].
 ]
 
@@ -119,7 +123,7 @@ DuckDBConnectionTest >> testResultCollect [
 	result := conn execute: 'SELECT * FROM range(3) t(n)'.
 	[
 		values := result collect: [:row | row at: 'n'].
-		self assert: values size equals: 3.
+		self assert: values equals: #(0 1 2) asOrderedCollection.
 	] ensure: [ result destroy ].
 ]
 
@@ -230,7 +234,7 @@ DuckDBConnectionTest >> testExecuteWith [
 	(conn execute: 'CREATE TABLE events (name VARCHAR, count BIGINT)') destroy.
 	statement := conn prepare: 'INSERT INTO events VALUES (?, ?)'.
 	[
-		statement executeWith: #('click' 1).
+		(statement executeWith: #('click' 1)) destroy.
 	] ensure: [ statement destroy ].
 	result := conn execute: 'SELECT name, count FROM events'.
 	[
@@ -299,6 +303,7 @@ DuckDBConnectionTest >> testReadCsvAutoReturnsRowValues [
 		[
 			self assert: result rowCount equals: 1.
 			row := result first.
+			self assert: (row at: 'id') equals: 1.
 			self assert: (row at: 'label') equals: 'hello'.
 		] ensure: [ result destroy ].
 	] ensure: [ csvFile delete ]
@@ -341,9 +346,168 @@ DuckDBConnectionTest >> testImportCsvAndAggregate [
 		result := conn execute:
 			'SELECT category, SUM(amount) AS total FROM sales GROUP BY category ORDER BY category'.
 		[
-			self assert: result rowCount equals: 2.
-			self assert: (result first at: 'category') equals: 'drink'.
+			| totals |
+			totals := Dictionary new.
+			result do: [:row | totals at: (row at: 'category') put: (row at: 'total')].
+			self assert: totals size equals: 2.
+			self assert: (totals at: 'drink') equals: 50.
+			self assert: (totals at: 'food') equals: 300.
 		] ensure: [ result destroy ].
 		(conn execute: 'DROP TABLE sales') destroy.
 	] ensure: [ csvFile delete ]
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testExecuteOnClosedConnectionSignalsError [
+	"execute: on a disconnected connection must signal DuckDBConnectionError."
+	conn disconnect.
+	self
+		should: [ conn execute: 'SELECT 1' ]
+		raise: DuckDBConnectionError.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testExecuteWithOnClosedConnectionSignalsError [
+	conn disconnect.
+	self
+		should: [ conn execute: 'SELECT ?' with: #(1) ]
+		raise: DuckDBConnectionError.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testPrepareOnClosedConnectionSignalsError [
+	conn disconnect.
+	self
+		should: [ conn prepare: 'SELECT ?' ]
+		raise: DuckDBConnectionError.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testPrepareInvalidSQLSignalsQueryError [
+	"A malformed prepare must raise DuckDBQueryError (not silently succeed)."
+	self
+		should: [ conn prepare: 'SELCT bad syntax' ]
+		raise: DuckDBQueryError.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testPrepareErrorCarriesRealMessage [
+	"The real DuckDB parser message is surfaced, not the generic fallback."
+	| raised |
+	raised := false.
+	[ conn prepare: 'SELCT bad syntax' ]
+		on: DuckDBQueryError
+		do: [:e |
+			raised := true.
+			self assert: e messageText notEmpty.
+			self deny: (e messageText beginsWith: 'Failed to prepare statement:') ].
+	self assert: raised.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testBindOutOfRangeIndexSignalsBindError [
+	"Binding past the parameter count must raise DuckDBBindError."
+	| statement |
+	statement := conn prepare: 'SELECT ? AS n'.
+	[
+		self
+			should: [ statement bindInteger: 1 at: 5 ]
+			raise: DuckDBBindError.
+	] ensure: [ statement destroy ].
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testResultUseAfterDestroySignalsError [
+	"Using a result after destroy must raise, not read freed memory."
+	| result |
+	result := conn execute: 'SELECT 1 AS n'.
+	result destroy.
+	self should: [ result do: [:row | row] ] raise: Error.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testRowUnknownColumnSignalsError [
+	| result |
+	result := conn execute: 'SELECT 1 AS a'.
+	[
+		self should: [ result first at: 'nope' ] raise: Error.
+	] ensure: [ result destroy ].
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testNestedListSignalsUnsupported [
+	"LIST/STRUCT/MAP are not decodable yet: the chunk path must signal
+	 DuckDBUnsupportedTypeError, guarding the known limitation against a silent
+	 wrong decode."
+	self
+		should: [ conn execute: 'SELECT [1, 2, 3] AS lst' ]
+		raise: DuckDBUnsupportedTypeError.
+]
+
+{ #category : 'tests - phase 5: error paths' }
+DuckDBConnectionTest >> testArrayColumnSignalsUnsupported [
+	"ARRAY is not a chunk-only type, so it takes the per-cell value path, which
+	 decodes lazily. Reading the cell must signal DuckDBUnsupportedTypeError, not
+	 silently stringify — both read paths share one error contract."
+	| result |
+	result := conn execute: 'SELECT [1, 2, 3]::INTEGER[3] AS a'.
+	[ self should: [ result first at: 'a' ] raise: DuckDBUnsupportedTypeError ]
+		ensure: [ result destroy ].
+]
+
+{ #category : 'tests - phase 6: convenience api' }
+DuckDBConnectionTest >> testRowAsDictionary [
+	| result dict |
+	result := conn execute: 'SELECT 1 AS a, 2 AS b'.
+	[
+		dict := result first asDictionary.
+		self assert: (dict at: 'a') equals: 1.
+		self assert: (dict at: 'b') equals: 2.
+	] ensure: [ result destroy ].
+]
+
+{ #category : 'tests - phase 6: convenience api' }
+DuckDBConnectionTest >> testDatabaseExecuteConvenience [
+	"DuckDB>>execute: connects, executes and disconnects; result stays readable."
+	| result |
+	result := db execute: 'SELECT 42 AS n'.
+	[
+		self assert: (result first at: 'n') equals: 42.
+	] ensure: [ result destroy ].
+]
+
+{ #category : 'tests - phase 6: convenience api' }
+DuckDBConnectionTest >> testOpenMemoryConnectionDo [
+	"DuckDB class>>openMemoryConnectionDo: opens, connects, runs the block, then closes."
+	| answer |
+	answer := DuckDB openMemoryConnectionDo: [:connection |
+		| result |
+		result := connection execute: 'SELECT 7 AS n'.
+		[ result first at: 'n' ] ensure: [ result destroy ] ].
+	self assert: answer equals: 7.
+]
+
+{ #category : 'tests - phase 6: convenience api' }
+DuckDBConnectionTest >> testSelectSignedIntegers [
+	"Signed integer types including negatives decode correctly."
+	| result row |
+	result := conn execute:
+		'SELECT (-5)::TINYINT AS a, (-300)::SMALLINT AS b, (-1000000)::BIGINT AS c'.
+	[
+		row := result first.
+		self assert: (row at: 'a') equals: -5.
+		self assert: (row at: 'b') equals: -300.
+		self assert: (row at: 'c') equals: -1000000.
+	] ensure: [ result destroy ].
+]
+
+{ #category : 'tests - phase 6: convenience api' }
+DuckDBConnectionTest >> testSelectBooleanColumn [
+	| result row |
+	result := conn execute: 'SELECT true AS t, false AS f'.
+	[
+		row := result first.
+		self assert: (row at: 't').
+		self deny: (row at: 'f').
+	] ensure: [ result destroy ].
 ]

@@ -1,13 +1,17 @@
 "
 I decode one column vector of a DuckDB data chunk into Smalltalk objects,
-row by row, recursing into nested types (LIST / STRUCT / MAP).
+row by row. I read scalar columns only.
 
-I exist because the deprecated per-cell value API cannot read nested types,
-ENUM, UUID or TIMESTAMP_TZ — the data chunk / vector API can.
-DuckDBResult uses me to materialize columns that the value API cannot handle.
+I exist because the deprecated per-cell value API cannot read ENUM, UUID or
+TIMESTAMP_TZ — the data chunk / vector API can. DuckDBResult uses me to
+materialize columns that the value API cannot handle.
 
-I own a logical type handle and any child readers; always call `close`
-when done (DuckDBResult does this after materializing).
+Nested types (LIST / STRUCT / MAP) are NOT supported: I signal
+DuckDBUnsupportedTypeError for them. The duckdb_list_entry layout note below is
+scaffolding for that not-yet-implemented work.
+
+I own a logical type handle; always call `close` when done (DuckDBResult does
+this after materializing).
 
 Layout facts (DuckDB v1.5.2, from duckdb.h, byte offsets are 1-based for
 ExternalAddress accessors):
@@ -135,7 +139,7 @@ DuckDBVectorReader >> bytesDecodeSelectorFor: aTypeCode [
 	mapper := DuckDBTypeMapper.
 	aTypeCode = mapper typeVarchar ifTrue: [ ^ #decodeVarcharAt: ].
 	aTypeCode = mapper typeBlob ifTrue: [ ^ #decodeBlobAt: ].
-	^ self error: 'Unsupported column type code: ' , aTypeCode printString
+	^ DuckDBUnsupportedTypeError signalForTypeCode: aTypeCode
 ]
 
 { #category : 'decoding - numeric' }
