@@ -34,7 +34,7 @@ jobs:
           echo "DUCKDB_LIB_PATH=${{ github.workspace }}/lib/libduckdb.so" >> $GITHUB_ENV
 
       - name: Setup smalltalkCI
-        uses: hpi-swa/setup-smalltalkCI@999b788246c9dca7ac8e4c606caade213eb3906e # 1.6.0
+        uses: hpi-swa/setup-smalltalkCI@c0a3a3b942ac515b6c3846ca2f65802d353757ef # 1.6.3
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
 
