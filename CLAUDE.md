@@ -16,6 +16,9 @@ make load
 # Run tests (headless)
 make test
 
+# Run Pharo lint rules on the loaded project (exit 1 on a finding)
+make lint
+
 # Launch the Pharo GUI
 make ui
 ```

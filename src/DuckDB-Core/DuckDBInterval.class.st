@@ -63,7 +63,7 @@ DuckDBInterval >> asDuration [
 { #category : 'comparing' }
 DuckDBInterval >> = anObject [
 	self == anObject ifTrue: [ ^ true ].
-	(anObject isKindOf: DuckDBInterval) ifFalse: [ ^ false ].
+	(anObject isKindOf: self class) ifFalse: [ ^ false ].
 	^ months = anObject months
 		and: [ days = anObject days
 		and: [ microseconds = anObject microseconds ] ]

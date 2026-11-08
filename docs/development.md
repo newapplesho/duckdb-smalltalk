@@ -71,6 +71,23 @@ your working-copy edits are what get compiled.
 make test
 ```
 
+## Lint
+
+```bash
+make lint
+```
+
+`make lint` runs Pharo's lint rules (Renraku: the critiques that the System Browser shows
+below the code) on `BaselineOfDuckDB` and on every `DuckDB*` package. It prints one line per
+finding and exits with status 1 if any finding remains. Like `make test`, it checks the code
+loaded in the image, so run `make load` first.
+
+The `ignored` dictionary in `scripts/lint.st` lists the findings that this project accepts on
+purpose, each with its reason. Each key is one finding line exactly as the script prints it
+(`<class or method> | <rule name>`), so an ignored finding does not hide the same rule on
+other classes or methods. The set of rules differs between Pharo versions: for example,
+Pharo 12 has no cyclomatic-complexity rule.
+
 ## Daily cycle
 
 Editing in the Pharo GUI (recommended — Iceberg writes the Tonel files for you):
@@ -85,7 +102,7 @@ git add src/ && git commit -m "feat: ..."
 ```
 
 Editing the Tonel files in `src/` directly instead? The image does not pick up the change
-by itself — reload with `make load`, then run `make test`.
+by itself — reload with `make load`, then run `make test` and `make lint`.
 
 ## Project layout
 
@@ -93,6 +110,7 @@ by itself — reload with `make load`, then run `make test`.
 |------|----------|
 | `src/` | Tonel sources — one `.class.st` per class, one `package.st` per package |
 | `scripts/load-project.st` | The load expression (single source of truth) |
+| `scripts/lint.st` | Lint script run by `make lint` |
 | `lib/` | Native `libduckdb` (not committed) |
 | `docs/` | [architecture.md](architecture.md), [binding.md](binding.md), this file |
 | `pharo-local/` | Local Pharo image + VM created by `make setup` (not committed) |

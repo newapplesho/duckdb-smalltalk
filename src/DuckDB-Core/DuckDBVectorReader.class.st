@@ -24,7 +24,6 @@ Class {
 	#name : 'DuckDBVectorReader',
 	#superclass : 'Object',
 	#instVars : [
-		'vector',
 		'logicalType',
 		'typeCode',
 		'lib',
@@ -45,7 +44,6 @@ DuckDBVectorReader class >> on: aVector [
 { #category : 'initialization' }
 DuckDBVectorReader >> initializeOn: aVector [
 	lib := DuckDBLibrary uniqueInstance.
-	vector := aVector.
 	logicalType := lib duckdbVectorGetColumnType: aVector.
 	typeCode := lib duckdbGetTypeId: logicalType.
 	dataPointer := lib duckdbVectorGetData: aVector.
