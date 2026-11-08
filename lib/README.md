@@ -58,11 +58,12 @@ $env:DUCKDB_LIB_PATH = "$PWD\lib\duckdb.dll"
 
 ## DuckDB 2.x
 
-DuckDB 2.x is supported on Pharo 14 only. From 2.0.0 the release asset is a
-`.tar.gz` named `duckdb-shared-libs-<platform>.tar.gz` (e.g.
-`duckdb-shared-libs-osx-universal.tar.gz`, `duckdb-shared-libs-linux-amd64.tar.gz`)
-instead of `libduckdb-<platform>.zip`. Extract `libduckdb.dylib` / `libduckdb.so`
-and `duckdb.h` into this directory with `tar xzf <file> -C lib/ <names>`.
+This library supports DuckDB 2.x on Pharo 14 only. From version 2.0.0, DuckDB
+publishes the library as a `.tar.gz` file named `duckdb-shared-libs-<platform>.tar.gz`
+(for example `duckdb-shared-libs-osx-universal.tar.gz` or
+`duckdb-shared-libs-linux-amd64.tar.gz`) instead of `libduckdb-<platform>.zip`.
+Extract `libduckdb.dylib` (macOS) or `libduckdb.so` (Linux) and `duckdb.h` into this
+directory with `tar xzf <file> -C lib/ <file names>`.
 
 ## Checking the version
 

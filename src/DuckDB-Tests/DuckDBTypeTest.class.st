@@ -359,7 +359,7 @@ DuckDBTypeTest >> testChunkPathNullReturnsNil [
 { #category : 'tests - chunk' }
 DuckDBTypeTest >> testChunkPathUntypedNullReturnsNil [
 	"An untyped NULL literal next to a chunk-only column (UUID) must decode to nil.
-	 DuckDB 2.x types a bare NULL as SQLNULL (36); 1.x typed it as INTEGER."
+	 DuckDB 2.x gives a bare NULL the type SQLNULL (36); DuckDB 1.x gave it INTEGER."
 	| result |
 	result := conn execute: 'SELECT
 		''550e8400-e29b-41d4-a716-446655440000''::UUID AS u,

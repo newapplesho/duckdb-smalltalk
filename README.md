@@ -12,14 +12,14 @@ Pharo Smalltalk 12/13/14 client library for [DuckDB](https://duckdb.org/), using
 | 1.5.x (tested with 1.5.6) | yes | yes | yes |
 | 2.0.x (tested with 2.0.0) | — | — | yes |
 
-DuckDB 2.x is tested on Pharo 14 only.
+CI tests DuckDB 2.x on Pharo 14 only, so this library supports DuckDB 2.x on Pharo 14 only.
 
 ## Platform support
 
 | Platform | Status |
 |----------|--------|
 | macOS | Tested locally |
-| Linux | Tested on CI (Pharo 12, 13 & 14 with DuckDB 1.5.6; Pharo 14 with DuckDB 2.0.0; every push) |
+| Linux | CI tests every push on Pharo 12, 13 and 14 with DuckDB 1.5.6, and on Pharo 14 with DuckDB 2.0.0 |
 | Windows | Not yet tested — reports welcome |
 
 ## Installation
@@ -46,15 +46,16 @@ curl -fsSL -o /tmp/libduckdb-linux.zip \
 unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d ~/duckdb/
 ```
 
-**DuckDB 2.x (Pharo 14 only):** from 2.0.0 the release asset is a `.tar.gz` named
-`duckdb-shared-libs-<platform>.tar.gz` instead of `libduckdb-<platform>.zip`:
+**DuckDB 2.x (Pharo 14 only):** from version 2.0.0, DuckDB publishes the library as a
+`.tar.gz` file named `duckdb-shared-libs-<platform>.tar.gz` instead of
+`libduckdb-<platform>.zip`:
 
 ```bash
 mkdir -p ~/duckdb
 curl -fsSL -o /tmp/duckdb-shared-libs.tar.gz \
   https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-shared-libs-osx-universal.tar.gz
 tar xzf /tmp/duckdb-shared-libs.tar.gz -C ~/duckdb/ libduckdb.dylib duckdb.h
-# Linux: use duckdb-shared-libs-linux-amd64.tar.gz and libduckdb.so
+# On Linux, download duckdb-shared-libs-linux-amd64.tar.gz and extract libduckdb.so.
 ```
 
 Then tell Pharo where the file is by setting `DUCKDB_LIB_PATH` **before starting Pharo**
