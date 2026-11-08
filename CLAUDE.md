@@ -1,6 +1,7 @@
 # DuckDB Smalltalk
 
-A client library that wraps the DuckDB C API with Pharo 12/13 + UFFI.
+A client library that wraps the DuckDB C API with Pharo 12/13/14 + UFFI.
+The library supports DuckDB 1.5.x on all three Pharo versions and DuckDB 2.x on Pharo 14 only.
 Sources are in [Tonel](https://github.com/pharo-vcs/tonel) format (`src/`): one `.class.st` per class, one `package.st` per package.
 
 ## Commands
@@ -14,6 +15,9 @@ make load
 
 # Run tests (headless)
 make test
+
+# Run Pharo lint rules on the loaded project (exit 1 on a finding)
+make lint
 
 # Launch the Pharo GUI
 make ui

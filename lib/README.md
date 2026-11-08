@@ -18,7 +18,7 @@ Use `DUCKDB_LIB_PATH` to override the path on CI or for non-standard installs.
 
 ```bash
 curl -L -o /tmp/libduckdb-osx.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-osx-universal.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-osx-universal.zip
 unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d lib/
 ```
 
@@ -30,7 +30,7 @@ unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d lib/
 
 ```bash
 curl -L -o /tmp/libduckdb-linux.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip
 unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d lib/
 ```
 
@@ -45,7 +45,7 @@ export DUCKDB_LIB_PATH=/usr/local/lib/libduckdb.so
 **Default:** `duckdb.dll` (searched on the system PATH or the current directory)
 
 ```powershell
-Invoke-WebRequest -Uri https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-windows-amd64.zip `
+Invoke-WebRequest -Uri https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-windows-amd64.zip `
   -OutFile $env:TEMP\libduckdb-windows.zip
 Expand-Archive $env:TEMP\libduckdb-windows.zip -DestinationPath lib\
 ```
@@ -55,6 +55,15 @@ Add the DLL to the system PATH, or set an absolute path via `DUCKDB_LIB_PATH`:
 ```powershell
 $env:DUCKDB_LIB_PATH = "$PWD\lib\duckdb.dll"
 ```
+
+## DuckDB 2.x
+
+This library supports DuckDB 2.x on Pharo 14 only. From version 2.0.0, DuckDB
+publishes the library as a `.tar.gz` file named `duckdb-shared-libs-<platform>.tar.gz`
+(for example `duckdb-shared-libs-osx-universal.tar.gz` or
+`duckdb-shared-libs-linux-amd64.tar.gz`) instead of `libduckdb-<platform>.zip`.
+Extract `libduckdb.dylib` (macOS) or `libduckdb.so` (Linux) and `duckdb.h` into this
+directory with `tar xzf <file> -C lib/ <file names>`.
 
 ## Checking the version
 

@@ -6,7 +6,7 @@ PHARO        = ./pharo --headless Pharo.image
 TEST_PATTERN = DuckDB.*
 PHARO_VERSION = 130
 
-.PHONY: help setup load test ui
+.PHONY: help setup load test lint ui
 
 help:   ## Show available targets
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-7s %s\n", $$1, $$2}'
@@ -20,6 +20,9 @@ load:   ## Load (or reload) the project into the Pharo image
 
 test:   ## Run all tests headless with JUnit XML output
 	cd $(PHARO_DIR) && $(PHARO) test --junit-xml-output '$(TEST_PATTERN)'
+
+lint:   ## Run Pharo lint rules on the loaded project (exit 1 on a finding)
+	cd $(PHARO_DIR) && $(PHARO) st --quit ../scripts/lint.st
 
 ui:     ## Open the Pharo GUI
 	cd $(PHARO_DIR) && ./pharo-ui Pharo.image

@@ -25,7 +25,8 @@ an issue.
 - [x] `execute:with:` on connections for one-shot parameterized queries
 - [x] CSV reading via `read_csv_auto` and import into tables
 - [x] Explicit, deterministic resource management (`ensure:`-based, no GC surprises)
-- [x] macOS / Linux / Windows library loading, CI on Pharo 12 and 13
+- [x] macOS / Linux / Windows library loading, CI on Pharo 12, 13 and 14
+- [x] DuckDB 2.x support (Pharo 14 only)
 
 ## Rich type support
 

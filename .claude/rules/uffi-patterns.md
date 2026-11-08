@@ -164,7 +164,7 @@ Never read/write fields directly. Use public API functions only.
 
 ## Structs Passed and Returned BY VALUE
 
-Verified working on Pharo 12/13 (macOS arm64 and Linux x64 CI): an
+This pattern works on Pharo 12/13/14 (verified on macOS arm64 and in Linux x64 CI): an
 `FFIExternalStructure` subclass can be used directly as a **return type** and as a
 **parameter type** in `ffiCall:` declarations — UFFI/libffi handles the by-value
 calling convention, including 16-byte structs.
@@ -198,6 +198,13 @@ DuckDBDateStruct >> days [
 "int64 field: signedLongLongAt: 1.  void* field: pointerAt: 1.
  uint64 field after a void*: unsignedLongLongAt: 9 (offsets are 1-based bytes)."
 ```
+
+Inside a struct class, use the `handle` **instance variable** (defined in
+`ExternalObject`) as above. Do not *send* `#handle` / `#handle:` to a struct from
+outside. Pharo 14 moved `FFIExternalReference>>#handle` and `#handle:` to the
+`Deprecated14` package, and each of them signals a deprecation that tells the caller
+to use `#getHandle` / `#setHandle:` instead. In Pharo 13 the two methods are in the
+`UnifiedFFI-Legacy` package.
 
 ## Caller-Owned C Buffers (malloc'ed returns)
 
@@ -234,15 +241,15 @@ Defining `class >> ffiLibraryName` does nothing and raises `subclassResponsibili
 "Correct: instance-side. Check the env override FIRST, then fall back to an
  absolute path via FileLocator (bypasses macOS SIP)."
 DuckDBLibrary >> macLibraryName [
-    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+    OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
     ^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.dylib') pathString
 ]
 DuckDBLibrary >> unixLibraryName [
-    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+    OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
     ^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.so') pathString
 ]
 DuckDBLibrary >> win32LibraryName [
-    Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+    OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
     ^ 'duckdb.dll'
 ]
 
@@ -251,5 +258,10 @@ DuckDBLibrary class >> ffiLibraryName [ ... ]
 ```
 
 On macOS, `DYLD_LIBRARY_PATH` is stripped by SIP for GUI processes. Always use `FileLocator` to build an absolute path — do not rely on environment variables for library loading.
+Read environment variables through `OSEnvironment current`. Pharo 14 deprecates
+`Smalltalk os environment`: `OSPlatform>>#environment` signals a deprecation with the
+message "Use `OSEnvironment current` instead". `OSEnvironment current` works on
+Pharo 12, 13 and 14.
+
 Providing an environment-variable override (e.g. `DUCKDB_LIB_PATH`) **in addition to**
 the FileLocator default is good practice for CI and non-standard installs.

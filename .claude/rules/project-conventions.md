@@ -69,7 +69,7 @@ C API (`duckdb_result_error`) before destroying the failed result.
 `DuckDBPreparedHandle` (duckdb_prepared_statement) — all `ExternalAddress`
 subclasses with `#type: 'bytes'` and class-side `asExternalTypeOn:` returning
 `FFIOop new`. `DuckDBResultStruct` mirrors the `duckdb_result` struct
-(48 bytes in DuckDB v1.5.x — see the class comment for the duckdb.h source URL).
+(48 bytes in DuckDB v1.5.x and v2.0.0; the class comment links to the duckdb.h source).
 
 By-value structs (`FFIExternalStructure` subclasses, see uffi-patterns.md):
 `DuckDBDateStruct` (duckdb_date), `DuckDBTimeStruct` (duckdb_time),
@@ -94,10 +94,18 @@ Note: C also defines `duckdb_date_struct` (year/month/day form) — not wrapped.
 | BLOB (18) | `ByteArray` | by-value struct; `data` freed after copy |
 | DECIMAL (19) | `ScaledDecimal` | varchar text, parsed — exact |
 | NULL | `nil` | `duckdb_value_is_null` first |
+| SQLNULL (36) | `nil` | column type check — see below |
 | ENUM (23) | label `String` | data chunk API (`DuckDBVectorReader`) — see below |
 | UUID (27) | `UUID` | data chunk API — hugeint storage, high bit flipped |
 | TIMESTAMP_TZ (31) | `DateAndTime` (UTC instant) | data chunk API — int64 micros, same storage as TIMESTAMP |
 | LIST (24), STRUCT (25), MAP (26) | — (NOT supported) | known limitation — see below |
+
+DuckDB 2.x gives a bare `NULL` literal (`SELECT NULL`) the type SQLNULL, where
+DuckDB 1.x gave it the type INTEGER. For the cells of a SQLNULL column,
+`duckdb_value_is_null` answers false (verified with v2.0.0), so
+`valueFromResult:col:row:` checks the column type and answers nil. The chunk path
+does not check the type: the validity mask of a SQLNULL vector marks every row as
+NULL, so `DuckDBVectorReader>>valueAt:` already answers nil.
 
 Type codes come from the `DUCKDB_TYPE` enum in duckdb.h — always verify against
 the header, never guess (a historical off-by-one in `typeFloat`/`typeDouble`
@@ -150,4 +158,12 @@ With the Pharo image in `pharo-local/` inside the repo, this resolves to
 - Design rationale: `docs/architecture.md`
 - DuckDB C API source of truth: `lib/duckdb.h` (downloaded by `make setup`,
   not committed) and
-  https://github.com/duckdb/duckdb/blob/v1.5.2/src/include/duckdb.h
+  https://github.com/duckdb/duckdb/blob/v1.5.6/src/include/duckdb.h
+- DuckDB 2.x: the DuckDB 2.0.0 release still contains the v1 C API in `duckdb.h`,
+  next to the new `duckdb_v2.h`. Every function that this project binds has the
+  same signature in v1.5.2 and v2.0.0, and the struct layouts and the existing
+  `DUCKDB_TYPE` codes did not change. DuckDB 2.0.0 adds the types VARIANT (41) and
+  TIMESTAMP_TZ_NS (42). `DuckDBTypeMapper` does not map them, so a column of either
+  type signals `DuckDBUnsupportedTypeError`.
+- Release assets: DuckDB 1.x publishes the library as `libduckdb-<platform>.zip`,
+  and DuckDB 2.x publishes it as `duckdb-shared-libs-<platform>.tar.gz`.
