@@ -34,20 +34,26 @@ jobs:
       - name: Download DuckDB library
         env:
           DUCKDB_VERSION: ${{ matrix.duckdb }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # The release asset was renamed in 2.0.0:
           #   1.x: libduckdb-linux-amd64.zip
           #   2.x: duckdb-shared-libs-linux-amd64.tar.gz
-          base=https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}
+          # Download through the GitHub API (gh release download) rather than the
+          # github.com/.../releases/download/ URL, which has returned HTTP 504.
           case "$DUCKDB_VERSION" in
-            1.*)
-              curl -fsSL --retry 5 --retry-delay 10 -o /tmp/libduckdb-linux.zip "$base/libduckdb-linux-amd64.zip"
-              unzip /tmp/libduckdb-linux.zip libduckdb.so -d lib/
-              ;;
-            *)
-              curl -fsSL --retry 5 --retry-delay 10 -o /tmp/libduckdb-linux.tar.gz "$base/duckdb-shared-libs-linux-amd64.tar.gz"
-              tar xzf /tmp/libduckdb-linux.tar.gz -C lib/ libduckdb.so
-              ;;
+            1.*) asset=libduckdb-linux-amd64.zip ;;
+            *)   asset=duckdb-shared-libs-linux-amd64.tar.gz ;;
+          esac
+          for attempt in 1 2 3; do
+            gh release download "v${DUCKDB_VERSION}" -R duckdb/duckdb \
+              -p "$asset" -D /tmp --clobber && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 15
+          done
+          case "$asset" in
+            *.zip) unzip "/tmp/$asset" libduckdb.so -d lib/ ;;
+            *)     tar xzf "/tmp/$asset" -C lib/ libduckdb.so ;;
           esac
           echo "DUCKDB_LIB_PATH=${{ github.workspace }}/lib/libduckdb.so" >> $GITHUB_ENV
 
