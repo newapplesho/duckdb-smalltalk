@@ -162,6 +162,12 @@ DuckDBTypeMapper class >> typeUHugeInt [
 ]
 
 { #category : 'type codes' }
+DuckDBTypeMapper class >> typeSqlNull [
+	"DUCKDB_TYPE_SQLNULL = 36 in duckdb.h (v1.5.6 and v2.0.0)"
+	^ 36
+]
+
+{ #category : 'type codes' }
 DuckDBTypeMapper class >> chunkOnlyTypeCodes [
 	"Types the deprecated per-cell value API cannot read; they require the
 	 data chunk / vector API (decoded by DuckDBVectorReader)."
@@ -182,6 +188,9 @@ DuckDBTypeMapper >> valueFromResult: resultStruct col: colIdx row: rowIdx [
 	(lib duckdbValueIsNull: resultStruct col: colIdx row: rowIdx)
 		ifTrue: [ ^ nil ].
 	typeCode := lib duckdbColumnType: resultStruct col: colIdx.
+	"DuckDB 2.x types a bare NULL literal as SQLNULL, and duckdb_value_is_null
+	 answers false for it; every cell of such a column is NULL."
+	typeCode = self class typeSqlNull ifTrue: [ ^ nil ].
 	^ self
 		convertType: typeCode
 		result: resultStruct

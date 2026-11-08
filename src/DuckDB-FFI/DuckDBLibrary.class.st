@@ -19,20 +19,20 @@ Class {
 DuckDBLibrary >> macLibraryName [
 	"Absolute path bypasses macOS SIP restriction (DYLD_LIBRARY_PATH is ignored by SIP).
 	 DUCKDB_LIB_PATH overrides the default path (CI / non-standard installs)."
-	Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+	OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
 	^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.dylib') pathString
 ]
 
 { #category : 'accessing' }
 DuckDBLibrary >> unixLibraryName [
-	Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+	OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
 	^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.so') pathString
 ]
 
 { #category : 'accessing' }
 DuckDBLibrary >> win32LibraryName [
 	"DUCKDB_LIB_PATH overrides the default DLL name (CI / non-standard installs)."
-	Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
+	OSEnvironment current at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
 	^ 'duckdb.dll'
 ]
 

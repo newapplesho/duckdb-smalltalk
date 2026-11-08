@@ -1,18 +1,25 @@
 # DuckDB Smalltalk
 
-Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UFFI (Unified Foreign Function Interface).
+Pharo Smalltalk 12/13/14 client library for [DuckDB](https://duckdb.org/), using UFFI (Unified Foreign Function Interface).
 
 ## Requirements
 
-- Pharo 12 or 13
+- Pharo 12, 13 or 14
 - `libduckdb` for your platform (installed in step 1 below)
+
+| DuckDB | Pharo 12 | Pharo 13 | Pharo 14 |
+|--------|----------|----------|----------|
+| 1.5.x (tested with 1.5.6) | yes | yes | yes |
+| 2.0.x (tested with 2.0.0) | — | — | yes |
+
+DuckDB 2.x is tested on Pharo 14 only.
 
 ## Platform support
 
 | Platform | Status |
 |----------|--------|
 | macOS | Tested locally |
-| Linux | Tested on CI (Pharo 12 & 13, every push) |
+| Linux | Tested on CI (Pharo 12, 13 & 14 with DuckDB 1.5.6; Pharo 14 with DuckDB 2.0.0; every push) |
 | Windows | Not yet tested — reports welcome |
 
 ## Installation
@@ -20,14 +27,14 @@ Pharo Smalltalk 12/13 client library for [DuckDB](https://duckdb.org/), using UF
 ### 1. Install libduckdb
 
 DuckDB is a native library, so you need the shared library before loading the Smalltalk
-code. Download the release that matches your platform (DuckDB v1.5.2) and unzip it
+code. Download the release that matches your platform (DuckDB v1.5.6) and unzip it
 anywhere you like:
 
 **macOS:**
 
 ```bash
 curl -fsSL -o /tmp/libduckdb-osx.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-osx-universal.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-osx-universal.zip
 unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d ~/duckdb/
 ```
 
@@ -35,8 +42,19 @@ unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d ~/duckdb/
 
 ```bash
 curl -fsSL -o /tmp/libduckdb-linux.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip
 unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d ~/duckdb/
+```
+
+**DuckDB 2.x (Pharo 14 only):** from 2.0.0 the release asset is a `.tar.gz` named
+`duckdb-shared-libs-<platform>.tar.gz` instead of `libduckdb-<platform>.zip`:
+
+```bash
+mkdir -p ~/duckdb
+curl -fsSL -o /tmp/duckdb-shared-libs.tar.gz \
+  https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-shared-libs-osx-universal.tar.gz
+tar xzf /tmp/duckdb-shared-libs.tar.gz -C ~/duckdb/ libduckdb.dylib duckdb.h
+# Linux: use duckdb-shared-libs-linux-amd64.tar.gz and libduckdb.so
 ```
 
 Then tell Pharo where the file is by setting `DUCKDB_LIB_PATH` **before starting Pharo**
@@ -76,7 +94,7 @@ This loads `DuckDB-Core` and `DuckDB-FFI`. To load the SUnit tests as well, use
 ### 3. Verify
 
 ```smalltalk
-"Should print the DuckDB version, e.g. 'v1.5.2'"
+"Should print the DuckDB version, e.g. 'v1.5.6'"
 DuckDBLibrary uniqueInstance duckdbLibraryVersion.
 
 "Should answer an OrderedCollection(42)"

@@ -10,7 +10,7 @@ git clone https://github.com/newapplesho/duckdb-smalltalk.git
 cd duckdb-smalltalk
 
 make setup                        # download Pharo image + VM into pharo-local/ (Pharo 13)
-# For Pharo 12: make setup PHARO_VERSION=120
+# For Pharo 12 / 14: make setup PHARO_VERSION=120 (or 140)
 ```
 
 Place `libduckdb` in `lib/`. This is the default lookup path for the cloned layout
@@ -19,13 +19,22 @@ Place `libduckdb` in `lib/`. This is the default lookup path for the cloned layo
 ```bash
 # macOS
 curl -fsSL -o /tmp/libduckdb-osx.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-osx-universal.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-osx-universal.zip
 unzip /tmp/libduckdb-osx.zip libduckdb.dylib duckdb.h -d lib/
 
 # Linux
 curl -fsSL -o /tmp/libduckdb-linux.zip \
-  https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
+  https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip
 unzip /tmp/libduckdb-linux.zip libduckdb.so duckdb.h -d lib/
+```
+
+To test against DuckDB 2.x (Pharo 14 only), download the 2.x asset instead. From 2.0.0
+it is a `.tar.gz` named `duckdb-shared-libs-<platform>.tar.gz`:
+
+```bash
+curl -fsSL -o /tmp/duckdb-shared-libs.tar.gz \
+  https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-shared-libs-osx-universal.tar.gz
+tar xzf /tmp/duckdb-shared-libs.tar.gz -C lib/ libduckdb.dylib duckdb.h
 ```
 
 See [lib/README.md](../lib/README.md) for the full lookup order and the
