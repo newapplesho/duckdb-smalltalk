@@ -13,8 +13,8 @@ scaffolding for that not-yet-implemented work.
 I own a logical type handle; always call `close` when done (DuckDBResult does
 this after materializing).
 
-Layout facts (DuckDB v1.5.2, from duckdb.h, byte offsets are 1-based for
-ExternalAddress accessors):
+Layout facts (from duckdb.h; DuckDB v1.5.2, v1.5.6 and v2.0.0 use the same layout).
+Byte offsets are 1-based for ExternalAddress accessors:
  - validity: uint64 bitset, bit r%64 of word r//64; 1 = valid. NULL pointer = all valid.
  - VARCHAR/BLOB cell = duckdb_string_t (16 bytes): uint32 length at +0; if length<=12
    the bytes are inlined at +4, otherwise a char* pointer sits at +8.
@@ -75,7 +75,10 @@ DuckDBVectorReader >> typeCode [
 
 { #category : 'reading' }
 DuckDBVectorReader >> valueAt: rowIdx [
-	"Answer the Smalltalk object for the cell at rowIdx, or nil if it is NULL."
+	"Answer the Smalltalk object for the cell at rowIdx, or nil if it is NULL.
+	 Every cell of a SQLNULL column is NULL, so this method does not read the validity
+	 mask for such a column."
+	typeCode = DuckDBTypeMapper typeSqlNull ifTrue: [ ^ nil ].
 	(self isValidAt: rowIdx) ifFalse: [ ^ nil ].
 	^ self perform: (self decodeSelectorFor: typeCode) with: rowIdx
 ]

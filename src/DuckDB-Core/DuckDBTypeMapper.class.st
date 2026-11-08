@@ -188,8 +188,7 @@ DuckDBTypeMapper >> valueFromResult: resultStruct col: colIdx row: rowIdx [
 	(lib duckdbValueIsNull: resultStruct col: colIdx row: rowIdx)
 		ifTrue: [ ^ nil ].
 	typeCode := lib duckdbColumnType: resultStruct col: colIdx.
-	"DuckDB 2.x gives a bare NULL literal the type SQLNULL. duckdb_value_is_null answers
-	 false for the cells of a SQLNULL column, but every one of those cells is NULL."
+	"duckdb_value_is_null answers false for SQLNULL cells (a bare NULL in DuckDB 2.x)."
 	typeCode = self class typeSqlNull ifTrue: [ ^ nil ].
 	^ self
 		convertType: typeCode

@@ -56,8 +56,8 @@ out := Stdio stdout.
 findings do: [ :each | out nextPutAll: each; lf ].
 out
 	nextPutAll: findings size printString , ' finding(s). ';
-	nextPutAll: skipped printString , ' more finding(s) skipped because ignored in ';
-	nextPutAll: 'scripts/lint.st lists them.';
+	nextPutAll: skipped printString , ' more finding(s) skipped because the ignored ';
+	nextPutAll: 'dictionary in scripts/lint.st lists them.';
 	lf;
 	flush.
 Smalltalk exit: (findings isEmpty ifTrue: [ 0 ] ifFalse: [ 1 ])

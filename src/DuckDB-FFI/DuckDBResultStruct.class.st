@@ -1,5 +1,5 @@
 "
-I mirror the duckdb_result C struct layout (DuckDB v1.5.x).
+I mirror the duckdb_result C struct layout. DuckDB v1.5.2, v1.5.6 and v2.0.0 use this layout.
 
 I exist only to provide the correct byteSize for allocating result memory.
 All my fields are deprecated internals — never read or write them directly;
@@ -15,7 +15,8 @@ Class {
 
 { #category : 'field definition' }
 DuckDBResultStruct class >> byteSize [
-	"duckdb_result is 6 machine words in DuckDB v1.5.x (48 bytes on 64-bit builds).
+	"duckdb_result is 6 machine words (48 bytes on 64-bit builds) in DuckDB v1.5.2, v1.5.6
+	 and v2.0.0.
 	 v1.5.2 added deprecated_rows_changed as the third field.
 	 See: https://github.com/duckdb/duckdb/blob/v1.5.2/src/include/duckdb.h"
 	^ 48
@@ -23,7 +24,7 @@ DuckDBResultStruct class >> byteSize [
 
 { #category : 'field definition' }
 DuckDBResultStruct class >> fieldsDesc [
-	"Mirror the duckdb_result C struct layout (DuckDB v1.5.x, from duckdb.h).
+	"Mirror the duckdb_result C struct layout (DuckDB v1.5.2, v1.5.6 and v2.0.0, from duckdb.h).
 	 Fields are intentionally deprecated internals — never access them directly.
 	 Use DuckDBLibrary API functions instead.
 	 See: https://github.com/duckdb/duckdb/blob/v1.5.2/src/include/duckdb.h"
