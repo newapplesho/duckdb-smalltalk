@@ -15,7 +15,7 @@ Class {
 	#package : 'DuckDB-FFI'
 }
 
-{ #category : 'accessing' }
+{ #category : 'accessing - platform' }
 DuckDBLibrary >> macLibraryName [
 	"Absolute path bypasses macOS SIP restriction (DYLD_LIBRARY_PATH is ignored by SIP).
 	 DUCKDB_LIB_PATH overrides the default path (CI / non-standard installs)."
@@ -23,13 +23,13 @@ DuckDBLibrary >> macLibraryName [
 	^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.dylib') pathString
 ]
 
-{ #category : 'accessing' }
+{ #category : 'accessing - platform' }
 DuckDBLibrary >> unixLibraryName [
 	Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
 	^ (FileLocator imageDirectory parent / 'lib' / 'libduckdb.so') pathString
 ]
 
-{ #category : 'accessing' }
+{ #category : 'accessing - platform' }
 DuckDBLibrary >> win32LibraryName [
 	"DUCKDB_LIB_PATH overrides the default DLL name (CI / non-standard installs)."
 	Smalltalk os environment at: 'DUCKDB_LIB_PATH' ifPresent: [ :path | ^ path ].
@@ -38,11 +38,14 @@ DuckDBLibrary >> win32LibraryName [
 
 { #category : 'constants' }
 DuckDBLibrary class >> success [
+	"Answer the value of DuckDBSuccess in the duckdb_state enum (duckdb.h)."
 	^ 0
 ]
 
 { #category : 'constants' }
-DuckDBLibrary class >> error [
+DuckDBLibrary class >> failure [
+	"Answer the value of DuckDBError in the duckdb_state enum (duckdb.h).
+	 This method is not named #error because that name would override Object>>#error."
 	^ 1
 ]
 

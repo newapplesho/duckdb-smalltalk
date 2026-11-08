@@ -13,7 +13,7 @@ Class {
 	#package : 'DuckDB-FFI'
 }
 
-{ #category : 'accessing' }
+{ #category : 'field definition' }
 DuckDBResultStruct class >> byteSize [
 	"duckdb_result is 6 machine words in DuckDB v1.5.x (48 bytes on 64-bit builds).
 	 v1.5.2 added deprecated_rows_changed as the third field.
@@ -21,7 +21,7 @@ DuckDBResultStruct class >> byteSize [
 	^ 48
 ]
 
-{ #category : 'accessing' }
+{ #category : 'field definition' }
 DuckDBResultStruct class >> fieldsDesc [
 	"Mirror the duckdb_result C struct layout (DuckDB v1.5.x, from duckdb.h).
 	 Fields are intentionally deprecated internals — never access them directly.

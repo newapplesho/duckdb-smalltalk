@@ -1,3 +1,10 @@
+"
+I am the Metacello baseline of DuckDB Smalltalk.
+
+I declare the packages DuckDB-FFI, DuckDB-Core and DuckDB-Tests and the order in which
+Metacello loads them. The 'default' group loads DuckDB-Core and DuckDB-FFI, which
+DuckDB-Core requires. The 'tests' group loads DuckDB-Tests, and the 'all' group loads both.
+"
 Class {
 	#name : 'BaselineOfDuckDB',
 	#superclass : 'BaselineOf',
